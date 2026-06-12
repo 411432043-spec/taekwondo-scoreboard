@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跆拳道電子計分系統 - Taekwondo Scoring Board App</title>
+  <meta name="description" content="專業的跆拳道電子計分系統，支援3個裁判無線小鍵盤計分共識，高畫質大螢幕投影，完美支援世跆盟(WT)規則與多功能設定。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       1. LAUNCHER VIEW (#launcher)
+       ========================================================================== -->
+  <div id="view-launcher" class="launcher-container">
+    <div class="launcher-card">
+      <div class="sb-logo-text" style="font-size: 2.2rem; display: block; margin-bottom: 5px;">STARLORD 星時</div>
+      <h1 class="launcher-title">跆拳道無線電子計分系統</h1>
+      <p class="launcher-subtitle">請選擇執行模式開啟計分板</p>
+      
+      <div class="launcher-options">
+        <a href="#split" class="launcher-btn">
+          <div class="launcher-btn-icon">🖥️</div>
+          <div class="launcher-btn-text">
+            <h3>雙螢幕分割模式 (Split Screen)</h3>
+            <p>在單一瀏覽器視窗中左右分割顯示「控制台」與「計分板」（最適合單螢幕測試與練習使用）。</p>
+          </div>
+        </a>
+        
+        <a href="#" id="btn-launch-dual" class="launcher-btn">
+          <div class="launcher-btn-icon">📺</div>
+          <div class="launcher-btn-text">
+            <h3>雙視窗投影模式 (Dual Window)</h3>
+            <p>開啟獨立投影計分板（可拖曳至外接投影機/電視）與主控制台（在主電腦上操作）。</p>
+          </div>
+        </a>
+        
+        <a href="#scoreboard" class="launcher-btn">
+          <div class="launcher-btn-icon">🎛️</div>
+          <div class="launcher-btn-text">
+            <h3>純計分板顯示 (Scoreboard Only)</h3>
+            <p>僅開啟計分顯示畫面，配合已在其他視窗運行的控制台使用。</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. OPERATOR CONTROL PANEL VIEW (#control)
+       ========================================================================== -->
+  <div id="view-control" class="control-wrapper" style="display: none;">
+    <!-- Left panel: Configuration Settings -->
+    <aside class="ctrl-left-panel">
+      <h2 class="ctrl-panel-title">賽事參數設定</h2>
+      
+      <form id="settings-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="cfg-match-id">賽事編號</label>
+          <input type="text" id="cfg-match-id" value="A1005">
+        </div>
+        <div class="form-group">
+          <label for="cfg-match-class">量級 / 級別資訊</label>
+          <input type="text" id="cfg-match-class" value="1/2+ChildMale-25KG">
+        </div>
+        
+        <hr style="border-color: #334155; margin: 0.5rem 0;">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-blue-name">藍方選手姓名</label>
+            <input type="text" id="cfg-blue-name" value="Jim">
+          </div>
+          <div class="form-group">
+            <label for="cfg-red-name">紅方選手姓名</label>
+            <input type="text" id="cfg-red-name" value="Jack">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-blue-team">藍方所屬單位</label>
+            <input type="text" id="cfg-blue-team" value="Washington">
+          </div>
+          <div class="form-group">
+            <label for="cfg-red-team">紅方所屬單位</label>
+            <input type="text" id="cfg-red-team" value="New York">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-score-mode">計分機制</label>
+            <select id="cfg-score-mode">
+              <option value="bestOf3" selected>回合制 (Best of 3)</option>
+              <option value="totalScore">總分制 (Cumulative)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cfg-max-gamjeoms">局犯規上限 (次)</label>
+            <input type="number" id="cfg-max-gamjeoms" value="5" min="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-round-duration">每局時間 (秒)</label>
+            <input type="number" id="cfg-round-duration" value="60">
+          </div>
+          <div class="form-group">
+            <label for="cfg-rest-duration">休息時間 (秒)</label>
+            <input type="number" id="cfg-rest-duration" value="30">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-consensus-window">共識視窗 (秒)</label>
+            <input type="number" id="cfg-consensus-window" value="1.0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="cfg-points-hit">擊中給分</label>
+            <input type="number" id="cfg-points-hit" value="2">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cfg-lockout-time">得分冷卻 (秒)</label>
+          <input type="number" id="cfg-lockout-time" value="1.5" step="0.1">
+        </div>
+
+        <hr style="border-color: #334155; margin: 0.5rem 0;">
+
+        <label style="color:#60a5fa; font-weight:800;">無線鍵盤按鍵設定</label>
+        
+        <div class="form-row" style="margin-top: 5px;">
+          <div class="form-group">
+            <label style="font-size:0.75rem;">J1 藍方按鍵</label>
+            <input type="text" id="cfg-key-j1b" value="1" maxlength="1">
+          </div>
+          <div class="form-group">
+            <label style="font-size:0.75rem;">J1 紅方按鍵</label>
+            <input type="text" id="cfg-key-j1r" value="2" maxlength="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label style="font-size:0.75rem;">J2 藍方按鍵</label>
+            <input type="text" id="cfg-key-j2b" value="3" maxlength="1">
+          </div>
+          <div class="form-group">
+            <label style="font-size:0.75rem;">J2 紅方按鍵</label>
+            <input type="text" id="cfg-key-j2r" value="4" maxlength="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label style="font-size:0.75rem;">J3 藍方按鍵</label>
+            <input type="text" id="cfg-key-j3b" value="5" maxlength="1">
+          </div>
+          <div class="form-group">
+            <label style="font-size:0.75rem;">J3 紅方按鍵</label>
+            <input type="text" id="cfg-key-j3r" value="6" maxlength="1">
+          </div>
+        </div>
+
+        <div class="keyboard-help-tooltip">
+          💡 <strong>按鍵說明：</strong>將無線小鍵盤插入電腦後，在上方欄位按下小鍵盤對應的按鍵，即可綁定該裁判得分鍵。
+        </div>
+
+        <button type="submit" id="btn-apply-settings" class="btn-primary" style="margin-top: 1rem; width: 100%;">儲存並應用設定</button>
+      </form>
+      
+      <button id="btn-reset-match" class="btn-secondary" style="margin-top: 0.5rem; background-color: #ef4444;">重置整場賽事</button>
+
+      <!-- Mobile QR Code Section -->
+      <div class="mobile-qr-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed #334155;">
+        <h3 style="color: #60a5fa; font-size: 0.95rem; font-weight: 800; margin-bottom: 0.5rem;">📱 手機掃碼線上評分</h3>
+        <div id="qr-status-msg" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.5rem; line-height: 1.3;">
+          請啟動本機伺服器並使用手機連線至相同 Wi-Fi 網路。
+        </div>
+        <div id="qrcode-container" style="background: white; padding: 10px; width: 150px; height: 150px; margin: 0.5rem auto; border-radius: 8px; display: none;"></div>
+        <div id="qr-url-text" style="font-size: 0.75rem; color: #38bdf8; text-align: center; word-break: break-all; margin-top: 0.5rem;"></div>
+      </div>
+    </aside>
+
+    <!-- Center panel: Main Arena controls & Adjustments -->
+    <main class="ctrl-center-panel">
+      <div class="ctrl-screen-header">
+        <h2 style="font-weight: 800; font-size: 1.1rem;">主裁判控制面板</h2>
+        <div id="ctrl-match-badge" class="ctrl-match-badge">A1005 - R1 MATCH</div>
+      </div>
+
+      <!-- Timer Control Zone -->
+      <section class="ctrl-timer-control-section">
+        <div id="ctrl-timer-time" class="ctrl-timer-time">1:00</div>
+        <div class="ctrl-timer-buttons">
+          <button id="btn-timer-plus10" class="btn-secondary">+10 秒</button>
+          <button id="btn-timer-toggle" class="btn-primary btn-timer-play">START (Space)</button>
+          <button id="btn-timer-minus10" class="btn-secondary">-10 秒</button>
+        </div>
+        <button id="btn-next-round" class="btn-secondary" style="background-color: #7c3aed; color: #fff; width: 100%; max-width: 250px; font-weight: 700;">強制進入下一局</button>
+      </section>
+
+      <!-- Competitor Score adjustment cards -->
+      <section class="ctrl-competitor-adjust">
+        <!-- Blue Player Column -->
+        <div class="ctrl-adjust-card blue-side">
+          <div class="ctrl-card-title">
+            <h3 id="ctrl-blue-card-title">Jim</h3>
+            <span id="ctrl-blue-card-sub">Washington</span>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">得分 (Score)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-blue-score-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-blue-score-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-blue-score-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">警告 (Gam-jeom)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-blue-gamjeom-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-blue-gamjeom-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-blue-gamjeom-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">裁判點擊 (Hits)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-blue-hits-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-blue-hits-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-blue-hits-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">局勝 (Wins)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-blue-wins-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-blue-wins-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-blue-wins-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+
+        </div>
+
+        <!-- Red Player Column -->
+        <div class="ctrl-adjust-card red-side">
+          <div class="ctrl-card-title">
+            <h3 id="ctrl-red-card-title">Jack</h3>
+            <span id="ctrl-red-card-sub">New York</span>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">得分 (Score)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-red-score-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-red-score-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-red-score-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">警告 (Gam-jeom)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-red-gamjeom-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-red-gamjeom-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-red-gamjeom-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">裁判點擊 (Hits)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-red-hits-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-red-hits-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-red-hits-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+          <div class="ctrl-adjust-item">
+            <div class="ctrl-adjust-label">局勝 (Wins)</div>
+            <div class="ctrl-adjust-actions">
+              <button id="btn-red-wins-minus" class="btn-ctrl-num">-</button>
+              <div id="ctrl-red-wins-val" class="ctrl-adjust-val">0</div>
+              <button id="btn-red-wins-plus" class="btn-ctrl-num">+</button>
+            </div>
+          </div>
+
+
+        </div>
+      </section>
+    </main>
+
+    <!-- Right panel: Judge hits debugger and Event Log -->
+    <aside class="ctrl-right-panel">
+      <div class="ctrl-judge-section">
+        <h2 class="ctrl-section-title">裁判按鍵動態 (測試/除錯)</h2>
+        <div class="ctrl-judge-grids">
+          <!-- J1 Row -->
+          <div class="ctrl-judge-row">
+            <div class="ctrl-judge-name">第一副審</div>
+            <div id="ctrl-indicator-j1-blue" class="ctrl-judge-btn-indicator">藍 (鍵: <span id="lbl-j1b-map">1</span>)</div>
+            <div id="ctrl-indicator-j1-red" class="ctrl-judge-btn-indicator">紅 (鍵: <span id="lbl-j1r-map">2</span>)</div>
+          </div>
+          <!-- J2 Row -->
+          <div class="ctrl-judge-row">
+            <div class="ctrl-judge-name">第二副審</div>
+            <div id="ctrl-indicator-j2-blue" class="ctrl-judge-btn-indicator">藍 (鍵: <span id="lbl-j2b-map">3</span>)</div>
+            <div id="ctrl-indicator-j2-red" class="ctrl-judge-btn-indicator">紅 (鍵: <span id="lbl-j2r-map">4</span>)</div>
+          </div>
+          <!-- J3 Row -->
+          <div class="ctrl-judge-row">
+            <div class="ctrl-judge-name">第三副審</div>
+            <div id="ctrl-indicator-j3-blue" class="ctrl-judge-btn-indicator">藍 (鍵: <span id="lbl-j3b-map">5</span>)</div>
+            <div id="ctrl-indicator-j3-red" class="ctrl-judge-btn-indicator">紅 (鍵: <span id="lbl-j3r-map">6</span>)</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="ctrl-log-section">
+        <h2 class="ctrl-section-title">賽事運作日誌</h2>
+        <div id="ctrl-log" class="ctrl-log-container">
+          <!-- Live events log here -->
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ==========================================================================
+       3. PUBLIC SCOREBOARD VIEW (#scoreboard)
+       ========================================================================== -->
+  <div id="view-scoreboard" class="scoreboard-wrapper" style="display: none;">
+    <!-- Top Header info -->
+    <header class="sb-header">
+      <!-- Left side: StarLord logo placeholder -->
+      <div class="sb-logo-container">
+        <span class="sb-logo-text">STARLORD</span>
+        <span class="sb-logo-sub">星時</span>
+      </div>
+      
+      <!-- Center: Division Name -->
+      <div id="sb-match-class" class="sb-match-class">1/2+ChildMale-25KG</div>
+      
+      <!-- Right: Empty/Flags placeholder or additional round-wins info -->
+      <div class="sb-header-right">
+        <!-- Top right violet round wins -->
+      </div>
+    </header>
+
+    <!-- Main Scoring display grid -->
+    <div class="sb-main-grid">
+      
+      <!-- Blue Competitor block -->
+      <section class="sb-player-block blue-side">
+        <!-- Info Header -->
+        <div class="sb-player-meta blue-side">
+
+          <div class="sb-player-info">
+            <div id="sb-blue-name" class="sb-player-name">Jim</div>
+            <div id="sb-blue-team" class="sb-player-team">Washington</div>
+          </div>
+          <div class="win-dots-group" id="sb-blue-win-dots">
+            <!-- Win indicators -->
+          </div>
+        </div>
+
+        <!-- Giant Blue Score -->
+        <div class="sb-score-container">
+          <div id="sb-blue-score" class="sb-score">0</div>
+        </div>
+
+        <!-- Bottom Stats Row -->
+        <div class="sb-stats-bar">
+
+          <!-- Superiority Lead -->
+          <div class="sb-stat-box">
+            <div class="sb-stat-label">SUP LEAD</div>
+            <div id="sb-blue-suplead" class="sb-stat-val">0</div>
+          </div>
+          <!-- Hits Tracker -->
+          <div class="sb-stat-box">
+            <div class="sb-stat-label">HITS</div>
+            <div id="sb-blue-hits" class="sb-stat-val">0</div>
+          </div>
+          <!-- Gamjeom (placed in absolute corner or separate column. In ref image it's on bottom left corner) -->
+          <div class="sb-stat-box" style="position: absolute; bottom: 1.5vh; left: 2vw; height: 10vh;">
+            <div class="sb-stat-label" style="font-size: 0.8vw;">GAM-JEOM</div>
+            <div id="sb-blue-gamjeom" class="sb-stat-val" style="font-size: 2.8vw;">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Column: timer & round -->
+      <section class="sb-center-col">
+        <!-- Match number -->
+        <div class="sb-match-num-box">
+          <div id="sb-match-id" class="sb-match-id">A1005 MATCH</div>
+          <div class="sb-match-label">MATCH</div>
+        </div>
+        
+        <!-- Timer -->
+        <div id="sb-timer-box" class="sb-timer-box">
+          <div id="sb-timer-label" class="sb-timer-label">MATCH</div>
+          <div id="sb-timer-display" class="sb-timer-display">1:00</div>
+        </div>
+
+        <!-- Round -->
+        <div class="sb-round-box">
+          <div id="sb-round-num" class="sb-round-num">1</div>
+          <div class="sb-round-label">ROUND</div>
+        </div>
+      </section>
+
+      <!-- Red Competitor block -->
+      <section class="sb-player-block red-side">
+        <!-- Info Header -->
+        <div class="sb-player-meta red-side">
+
+          <div class="sb-player-info">
+            <div id="sb-red-name" class="sb-player-name">Jack</div>
+            <div id="sb-red-team" class="sb-player-team">New York</div>
+          </div>
+          <div class="win-dots-group" id="sb-red-win-dots">
+            <!-- Win indicators -->
+          </div>
+        </div>
+
+        <!-- Giant Red Score -->
+        <div class="sb-score-container">
+          <div id="sb-red-score" class="sb-score">0</div>
+        </div>
+
+        <!-- Bottom Stats Row -->
+        <div class="sb-stats-bar">
+          <!-- Hits Tracker -->
+          <div class="sb-stat-box">
+            <div class="sb-stat-label">HITS</div>
+            <div id="sb-red-hits" class="sb-stat-val">0</div>
+          </div>
+          <!-- Superiority Lead -->
+          <div class="sb-stat-box">
+            <div class="sb-stat-label">SUP LEAD</div>
+            <div id="sb-red-suplead" class="sb-stat-val">0</div>
+          </div>
+
+          <!-- Gamjeom (placed in bottom right corner absolute) -->
+          <div class="sb-stat-box" style="position: absolute; bottom: 1.5vh; right: 2vw; height: 10vh;">
+            <div class="sb-stat-label" style="font-size: 0.8vw;">GAM-JEOM</div>
+            <div id="sb-red-gamjeom" class="sb-stat-val" style="font-size: 2.8vw;">0</div>
+          </div>
+        </div>
+      </section>
+      
+    </div>
+
+    <!-- Small debug indicators at the bottom to show referee activity -->
+    <div class="sb-key-log-overlay">
+      <div id="sb-indicator-j1" class="judge-indicator-dot" title="Judge 1 Indicator"></div>
+      <div id="sb-indicator-j2" class="judge-indicator-dot" title="Judge 2 Indicator"></div>
+      <div id="sb-indicator-j3" class="judge-indicator-dot" title="Judge 3 Indicator"></div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       4. SPLIT SCREEN MODE VIEW (#split)
+       ========================================================================== -->
+  <div id="view-split" class="split-wrapper" style="display: none;">
+    <div class="split-pane">
+      <iframe id="split-control-pane" class="split-iframe" src="about:blank"></iframe>
+    </div>
+    <div class="split-pane">
+      <iframe id="split-scoreboard-pane" class="split-iframe" src="about:blank"></iframe>
+    </div>
+  </div>
+
+  <script src="qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

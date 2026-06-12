@@ -1,0 +1,15 @@
+{
+  "name": "taekwondo-scoreboard",
+  "version": "1.0.0",
+  "description": "Taekwondo Wireless Scoreboard App with Mobile Support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
