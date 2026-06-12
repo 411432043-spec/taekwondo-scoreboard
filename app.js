@@ -265,17 +265,7 @@ function initScoreboard() {
   channel.onmessage = (event) => {
     const msg = event.data;
     if (msg.type === "STATE_UPDATE") {
-      const oldScore = { blue: state.blueScore, red: state.redScore };
-      state = msg.state;
-      renderScoreboardDOM();
-      
-      // Pulse animation on score increment
-      if (state.blueScore > oldScore.blue) {
-        pulseScore("blue");
-      }
-      if (state.redScore > oldScore.red) {
-        pulseScore("red");
-      }
+      updateScoreboardState(msg.state);
     } else if (msg.type === "JUDGE_HIT_INDICATOR") {
       flashJudgeIndicator(msg.judgeIndex, msg.color);
     } else if (msg.type === "PLAY_SOUND") {
@@ -285,8 +275,37 @@ function initScoreboard() {
     }
   };
 
+  // Start polling server state for cross-device/cross-window robustness
+  setInterval(() => {
+    fetch("/api/state")
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(serverState => {
+        if (serverState) {
+          updateScoreboardState(serverState);
+        }
+      })
+      .catch(e => {});
+  }, 150);
+
   // Scoreboard key listener (allows forwarding keyboard hits if focused)
   window.addEventListener("keydown", handleScoreboardKeyboardInput);
+}
+
+function updateScoreboardState(newState) {
+  const oldScore = { blue: state.blueScore, red: state.redScore };
+  state = newState;
+  renderScoreboardDOM();
+  
+  // Pulse animation on score increment
+  if (state.blueScore > oldScore.blue) {
+    pulseScore("blue");
+  }
+  if (state.redScore > oldScore.red) {
+    pulseScore("red");
+  }
 }
 
 function handleScoreboardKeyboardInput(e) {
@@ -462,6 +481,13 @@ function initControl() {
 function broadcastState() {
   localStorage.setItem("tkd_state", JSON.stringify(state));
   channel.postMessage({ type: "STATE_UPDATE", state: state });
+  
+  // Post state to server for cross-device/cross-window synchronization
+  fetch("/api/state", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(state)
+  }).catch(e => {});
 }
 
 function broadcastSound(soundName) {
