@@ -347,6 +347,16 @@ body {
   background: #2b303a !important;
 }
 
+/* Match Over: Hide green rest timer box */
+.scoreboard-wrapper.match-over .sb-timer-box {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.scoreboard-wrapper.match-over .sb-timer-box * {
+  display: none !important;
+}
+
 /* Sub-Round History Bar (Shown during Rest - exactly like normal stats bar, no frame) */
 .sb-round-history-bar {
   display: none;
@@ -615,15 +625,9 @@ body {
   margin-top: 5px;
 }
 
-/* Live keypress visual debugger on scoreboard (Optional transparent overlay) */
+/* Live keypress visual debugger on scoreboard (Removed) */
 .sb-key-log-overlay {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 15px;
-  z-index: 10;
+  display: none !important;
 }
 
 .judge-indicator-dot {
