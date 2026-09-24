@@ -12,6 +12,7 @@ let state = {
   blueScore: 0,
   blueGamjeom: 0,
   blueHits: 0,
+  blueSupLead: 0,
   blueWins: 0,
   
   redName: "",
@@ -19,6 +20,7 @@ let state = {
   redScore: 0,
   redGamjeom: 0,
   redHits: 0,
+  redSupLead: 0,
   redWins: 0,
 
   scoringMode: "bestOf3", // "bestOf3" or "totalScore"
@@ -384,7 +386,7 @@ function renderScoreboardDOM() {
   const blueHitsElem = document.getElementById("sb-blue-hits");
   if (blueHitsElem) blueHitsElem.textContent = state.blueHits;
   const blueSupLeadElem = document.getElementById("sb-blue-suplead");
-  if (blueSupLeadElem) blueSupLeadElem.textContent = state.blueGamjeom;
+  if (blueSupLeadElem) blueSupLeadElem.textContent = state.blueSupLead !== undefined ? state.blueSupLead : 0;
   
   // Red Side Info
   const redNameElem = document.getElementById("sb-red-name");
@@ -398,7 +400,7 @@ function renderScoreboardDOM() {
   const redHitsElem = document.getElementById("sb-red-hits");
   if (redHitsElem) redHitsElem.textContent = state.redHits;
   const redSupLeadElem = document.getElementById("sb-red-suplead");
-  if (redSupLeadElem) redSupLeadElem.textContent = state.redGamjeom;
+  if (redSupLeadElem) redSupLeadElem.textContent = state.redSupLead !== undefined ? state.redSupLead : 0;
 
   // Round Win Dots
   updateWinDots("sb-blue-win-dots", state.blueWins);
