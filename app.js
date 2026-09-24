@@ -12,6 +12,8 @@ let state = {
   blueScore: 0,
   blueGamjeom: 0,
   blueHits: 0,
+  blueTurning: 0,
+  blueHead: 0,
   blueSupLead: 0,
   blueWins: 0,
   
@@ -20,6 +22,8 @@ let state = {
   redScore: 0,
   redGamjeom: 0,
   redHits: 0,
+  redTurning: 0,
+  redHead: 0,
   redSupLead: 0,
   redWins: 0,
 
@@ -55,12 +59,16 @@ let judgePresses = {
   blue: {
     1: { 1: 0, 2: 0, 3: 0 },
     2: { 1: 0, 2: 0, 3: 0 },
-    3: { 1: 0, 2: 0, 3: 0 }
+    3: { 1: 0, 2: 0, 3: 0 },
+    4: { 1: 0, 2: 0, 3: 0 },
+    5: { 1: 0, 2: 0, 3: 0 }
   },
   red: {
     1: { 1: 0, 2: 0, 3: 0 },
     2: { 1: 0, 2: 0, 3: 0 },
-    3: { 1: 0, 2: 0, 3: 0 }
+    3: { 1: 0, 2: 0, 3: 0 },
+    4: { 1: 0, 2: 0, 3: 0 },
+    5: { 1: 0, 2: 0, 3: 0 }
   }
 };
 
@@ -68,12 +76,16 @@ let consumedPresses = {
   blue: {
     1: { 1: false, 2: false, 3: false },
     2: { 1: false, 2: false, 3: false },
-    3: { 1: false, 2: false, 3: false }
+    3: { 1: false, 2: false, 3: false },
+    4: { 1: false, 2: false, 3: false },
+    5: { 1: false, 2: false, 3: false }
   },
   red: {
     1: { 1: false, 2: false, 3: false },
     2: { 1: false, 2: false, 3: false },
-    3: { 1: false, 2: false, 3: false }
+    3: { 1: false, 2: false, 3: false },
+    4: { 1: false, 2: false, 3: false },
+    5: { 1: false, 2: false, 3: false }
   }
 };
 
@@ -721,6 +733,75 @@ function flashControlJudgeIndicator(judgeIndex, color) {
   }, 350);
 }
 
+function updateSuperiorityLead() {
+  // WT Competition Rules (Article 15 - Decision of Superiority):
+  // 1. Most points / count scored by turning kicks (4pt & 5pt)
+  // 2. High-value techniques: Head kicks (3pt & 5pt)
+  // 3. Higher number of registered hits (HITS)
+  // 4. Fewer penalties (GAM-JEOM)
+  // 5. Complete tie: 0 vs 0
+
+  const blueTurning = state.blueTurning || 0;
+  const redTurning = state.redTurning || 0;
+
+  if (blueTurning !== redTurning) {
+    if (blueTurning > redTurning) {
+      state.blueSupLead = blueTurning - redTurning;
+      state.redSupLead = 0;
+    } else {
+      state.blueSupLead = 0;
+      state.redSupLead = redTurning - blueTurning;
+    }
+    return;
+  }
+
+  // Tier 2: Head kicks (3pt & 5pt)
+  const blueHead = state.blueHead || 0;
+  const redHead = state.redHead || 0;
+  if (blueHead !== redHead) {
+    if (blueHead > redHead) {
+      state.blueSupLead = blueHead - redHead;
+      state.redSupLead = 0;
+    } else {
+      state.blueSupLead = 0;
+      state.redSupLead = redHead - blueHead;
+    }
+    return;
+  }
+
+  // Tier 3: Registered hits
+  const blueHits = state.blueHits || 0;
+  const redHits = state.redHits || 0;
+  if (blueHits !== redHits) {
+    if (blueHits > redHits) {
+      state.blueSupLead = blueHits - redHits;
+      state.redSupLead = 0;
+    } else {
+      state.blueSupLead = 0;
+      state.redSupLead = redHits - blueHits;
+    }
+    return;
+  }
+
+  // Tier 4: Fewer penalties (Gam-jeom)
+  const blueGamjeom = state.blueGamjeom || 0;
+  const redGamjeom = state.redGamjeom || 0;
+  if (blueGamjeom !== redGamjeom) {
+    if (blueGamjeom < redGamjeom) {
+      state.blueSupLead = redGamjeom - blueGamjeom;
+      state.redSupLead = 0;
+    } else {
+      state.blueSupLead = 0;
+      state.redSupLead = blueGamjeom - redGamjeom;
+    }
+    return;
+  }
+
+  // Tier 5: Dead tie
+  state.blueSupLead = 0;
+  state.redSupLead = 0;
+}
+
 function checkConsensus(judgeIndex, color, points) {
   const now = Date.now();
   
@@ -762,6 +843,14 @@ function checkConsensus(judgeIndex, color, points) {
     // Award score points
     state[`${color}Score`] += points;
     
+    // Track technical categories for WT Superiority
+    if (points === 4 || points === 5) {
+      state[`${color}Turning`] = (state[`${color}Turning`] || 0) + 1;
+    }
+    if (points === 3 || points === 5) {
+      state[`${color}Head`] = (state[`${color}Head`] || 0) + 1;
+    }
+
     // Mark these judge inputs as consumed
     matchingJudges.forEach(jIdx => {
       consumedPresses[color][points][jIdx] = true;
@@ -770,7 +859,17 @@ function checkConsensus(judgeIndex, color, points) {
     // Set lockout timestamp
     lastScoreTime[color] = now;
     
-    logEvent(`Consensus Reached (${color.toUpperCase()} +${points}pt) by Judges [${matchingJudges.join(',')}]. Awarded +${points} points!`);
+    // Recalculate WT Superiority
+    updateSuperiorityLead();
+
+    let pointDesc = `+${points}pt`;
+    if (points === 4) pointDesc = "中端轉身 +4pt 🌀";
+    else if (points === 5) pointDesc = "上端轉身 +5pt 🌀";
+    else if (points === 3) pointDesc = "上端頭部 +3pt";
+    else if (points === 2) pointDesc = "中端軀幹 +2pt";
+    else if (points === 1) pointDesc = "拳擊 +1pt";
+    
+    logEvent(`Consensus Reached (${color.toUpperCase()} ${pointDesc}) by Judges [${matchingJudges.join(',')}]. Awarded +${points} points!`);
     broadcastSound("point");
   }
 }
@@ -865,9 +964,15 @@ function handlePeriodEnd() {
       state.blueScore = 0;
       state.blueGamjeom = 0;
       state.blueHits = 0;
+      state.blueTurning = 0;
+      state.blueHead = 0;
+      state.blueSupLead = 0;
       state.redScore = 0;
       state.redGamjeom = 0;
       state.redHits = 0;
+      state.redTurning = 0;
+      state.redHead = 0;
+      state.redSupLead = 0;
     }
     
     logEvent(`Rest completed. Starting Round ${state.currentRound}`);
@@ -881,21 +986,37 @@ function handlePeriodEnd() {
       if (roundEndedByPenalty) {
         const winnerColor = roundEndedByPenalty;
         state[`${winnerColor}Wins`]++;
-        winnerText = `${state[`${winnerColor}Name`]} (${winnerColor === "blue" ? "Blue" : "Red"}) wins Round ${state.currentRound} by penalty!`;
+        winnerText = `${state[`${winnerColor}Name`] || (winnerColor === "blue" ? "藍方" : "紅方")} (${winnerColor === "blue" ? "Blue" : "Red"}) wins Round ${state.currentRound} by penalty!`;
         logEvent(winnerText);
         roundEndedByPenalty = null; // Clear the flag
       } else {
+        const blueDisplayName = state.blueName || "藍方";
+        const redDisplayName = state.redName || "紅方";
+
         if (state.blueScore > state.redScore) {
           state.blueWins++;
-          winnerText = `${state.blueName} (Blue) wins Round ${state.currentRound}`;
+          winnerText = `${blueDisplayName} (Blue) wins Round ${state.currentRound}`;
           logEvent(`${winnerText} [Score: ${state.blueScore} - ${state.redScore}]`);
         } else if (state.redScore > state.blueScore) {
           state.redWins++;
-          winnerText = `${state.redName} (Red) wins Round ${state.currentRound}`;
+          winnerText = `${redDisplayName} (Red) wins Round ${state.currentRound}`;
           logEvent(`${winnerText} [Score: ${state.blueScore} - ${state.redScore}]`);
         } else {
-          winnerText = `Round ${state.currentRound} is a TIE. Please manually award the round win.`;
-          logEvent(winnerText);
+          // Tie score - Resolve by WT Superiority criteria
+          updateSuperiorityLead();
+
+          if (state.blueSupLead > state.redSupLead) {
+            state.blueWins++;
+            winnerText = `${blueDisplayName} (Blue) wins Round ${state.currentRound} by WT Superiority (優勢判定勝)!`;
+            logEvent(`${winnerText} [Tied Score: ${state.blueScore}-${state.redScore}, Sup Lead: +${state.blueSupLead}]`);
+          } else if (state.redSupLead > state.blueSupLead) {
+            state.redWins++;
+            winnerText = `${redDisplayName} (Red) wins Round ${state.currentRound} by WT Superiority (優勢判定勝)!`;
+            logEvent(`${winnerText} [Tied Score: ${state.blueScore}-${state.redScore}, Sup Lead: +${state.redSupLead}]`);
+          } else {
+            winnerText = `Round ${state.currentRound} is a dead TIE (平手且優勢判定相同). Please manually award the round win.`;
+            logEvent(winnerText);
+          }
         }
       }
       
@@ -977,12 +1098,18 @@ function resetMatchFully() {
     state.blueScore = 0;
     state.blueGamjeom = 0;
     state.blueHits = 0;
+    state.blueTurning = 0;
+    state.blueHead = 0;
+    state.blueSupLead = 0;
     state.blueReplay = 1;
     state.blueWins = 0;
     
     state.redScore = 0;
     state.redGamjeom = 0;
     state.redHits = 0;
+    state.redTurning = 0;
+    state.redHead = 0;
+    state.redSupLead = 0;
     state.redReplay = 1;
     state.redWins = 0;
     
@@ -999,17 +1126,38 @@ function resetMatchFully() {
     state.timerEndTime = null;
     state.timestamp = Date.now();
     
-    // Clear judge records
+    // Clear judge records for points 1-5
     judgePresses = {
       blue: {
         1: { 1: 0, 2: 0, 3: 0 },
         2: { 1: 0, 2: 0, 3: 0 },
-        3: { 1: 0, 2: 0, 3: 0 }
+        3: { 1: 0, 2: 0, 3: 0 },
+        4: { 1: 0, 2: 0, 3: 0 },
+        5: { 1: 0, 2: 0, 3: 0 }
       },
       red: {
         1: { 1: 0, 2: 0, 3: 0 },
         2: { 1: 0, 2: 0, 3: 0 },
-        3: { 1: 0, 2: 0, 3: 0 }
+        3: { 1: 0, 2: 0, 3: 0 },
+        4: { 1: 0, 2: 0, 3: 0 },
+        5: { 1: 0, 2: 0, 3: 0 }
+      }
+    };
+    
+    consumedPresses = {
+      blue: {
+        1: { 1: false, 2: false, 3: false },
+        2: { 1: false, 2: false, 3: false },
+        3: { 1: false, 2: false, 3: false },
+        4: { 1: false, 2: false, 3: false },
+        5: { 1: false, 2: false, 3: false }
+      },
+      red: {
+        1: { 1: false, 2: false, 3: false },
+        2: { 1: false, 2: false, 3: false },
+        3: { 1: false, 2: false, 3: false },
+        4: { 1: false, 2: false, 3: false },
+        5: { 1: false, 2: false, 3: false }
       }
     };
     
@@ -1041,9 +1189,15 @@ function forceEndPeriod() {
       state.blueScore = 0;
       state.blueGamjeom = 0;
       state.blueHits = 0;
+      state.blueTurning = 0;
+      state.blueHead = 0;
+      state.blueSupLead = 0;
       state.redScore = 0;
       state.redGamjeom = 0;
       state.redHits = 0;
+      state.redTurning = 0;
+      state.redHead = 0;
+      state.redSupLead = 0;
     }
     logEvent(`Skipped rest. Manually started Round ${state.currentRound}`);
   } else {
@@ -1116,6 +1270,10 @@ function renderControlDOM() {
   document.getElementById("ctrl-blue-gamjeom-val").textContent = state.blueGamjeom;
   document.getElementById("ctrl-blue-hits-val").textContent = state.blueHits;
   document.getElementById("ctrl-blue-wins-val").textContent = state.blueWins;
+  const blueTurningElem = document.getElementById("ctrl-blue-turning-val");
+  if (blueTurningElem) blueTurningElem.textContent = state.blueTurning || 0;
+  const blueSupLeadElem = document.getElementById("ctrl-blue-suplead-val");
+  if (blueSupLeadElem) blueSupLeadElem.textContent = state.blueSupLead || 0;
 
   document.getElementById("ctrl-red-card-title").textContent = state.redName || "紅方";
   document.getElementById("ctrl-red-card-sub").textContent = state.redTeam || "";
@@ -1123,6 +1281,10 @@ function renderControlDOM() {
   document.getElementById("ctrl-red-gamjeom-val").textContent = state.redGamjeom;
   document.getElementById("ctrl-red-hits-val").textContent = state.redHits;
   document.getElementById("ctrl-red-wins-val").textContent = state.redWins;
+  const redTurningElem = document.getElementById("ctrl-red-turning-val");
+  if (redTurningElem) redTurningElem.textContent = state.redTurning || 0;
+  const redSupLeadElem = document.getElementById("ctrl-red-suplead-val");
+  if (redSupLeadElem) redSupLeadElem.textContent = state.redSupLead || 0;
 
   // Keyboard mapping descriptions
   document.getElementById("lbl-j1b-map").textContent = state.keys.j1Blue.toUpperCase();
@@ -1135,57 +1297,64 @@ function renderControlDOM() {
 
 function setupAdjustmentButtons() {
   const sides = ["blue", "red"];
-  const stats = ["score", "gamjeom", "hits", "wins"];
+  const stats = ["score", "gamjeom", "hits", "turning", "wins"];
   
   sides.forEach(color => {
     stats.forEach(stat => {
-      // Plus button
-      document.getElementById(`btn-${color}-${stat}-plus`).onclick = () => {
-        if (stat === "gamjeom") {
-          state[`${color}Gamjeom`]++;
-          // Gam-jeom rule: Adds 1 point to opponent score
-          const opponent = color === "blue" ? "red" : "blue";
-          state[`${opponent}Score`]++;
-          
-          logEvent(`Gam-jeom penalty to ${color.toUpperCase()}. Opponent ${opponent.toUpperCase()} +1 point. Total Gam-jeom: ${state[`${color}Gamjeom`]}`);
-          broadcastSound("gamjeom");
-          
-          // Reaching maximum Gam-jeoms in a round triggers automatic round loss
-          if (state[`${color}Gamjeom`] >= state.maxGamjeoms && state.scoringMode === "bestOf3") {
-            logEvent(`${color.toUpperCase()} reached ${state.maxGamjeoms} Gam-jeoms! Lost round.`);
-            alert(`${color.toUpperCase()} reached ${state.maxGamjeoms} Gam-jeoms! Opponent wins this round.`);
-            roundEndedByPenalty = opponent;
-            forceEndPeriod(); // Automatically transitions to rest
-          }
-        } else {
-          state[`${color}${capitalizeFirst(stat)}`]++;
-          logEvent(`Manual adjust: ${color.toUpperCase()} ${stat} +1`);
-        }
-        renderControlDOM();
-        broadcastState();
-      };
-      
-      // Minus button
-      document.getElementById(`btn-${color}-${stat}-minus`).onclick = () => {
-        if (stat === "gamjeom") {
-          if (state[`${color}Gamjeom`] > 0) {
-            state[`${color}Gamjeom`]--;
-            // Remove the point added to opponent as well
+      const plusBtn = document.getElementById(`btn-${color}-${stat}-plus`);
+      const minusBtn = document.getElementById(`btn-${color}-${stat}-minus`);
+
+      if (plusBtn) {
+        plusBtn.onclick = () => {
+          if (stat === "gamjeom") {
+            state[`${color}Gamjeom`]++;
+            // Gam-jeom rule: Adds 1 point to opponent score
             const opponent = color === "blue" ? "red" : "blue";
-            if (state[`${opponent}Score`] > 0) {
-              state[`${opponent}Score`]--;
+            state[`${opponent}Score`]++;
+            
+            logEvent(`Gam-jeom penalty to ${color.toUpperCase()}. Opponent ${opponent.toUpperCase()} +1 point. Total Gam-jeom: ${state[`${color}Gamjeom`]}`);
+            broadcastSound("gamjeom");
+            
+            // Reaching maximum Gam-jeoms in a round triggers automatic round loss
+            if (state[`${color}Gamjeom`] >= state.maxGamjeoms && state.scoringMode === "bestOf3") {
+              logEvent(`${color.toUpperCase()} reached ${state.maxGamjeoms} Gam-jeoms! Lost round.`);
+              alert(`${color.toUpperCase()} reached ${state.maxGamjeoms} Gam-jeoms! Opponent wins this round.`);
+              roundEndedByPenalty = opponent;
+              forceEndPeriod(); // Automatically transitions to rest
             }
-            logEvent(`Manual adjust: Removed Gam-jeom penalty from ${color.toUpperCase()}. Opponent ${opponent.toUpperCase()} -1 point.`);
+          } else {
+            state[`${color}${capitalizeFirst(stat)}`]++;
+            logEvent(`Manual adjust: ${color.toUpperCase()} ${stat} +1`);
           }
-        } else {
-          if (state[`${color}${capitalizeFirst(stat)}`] > 0) {
-            state[`${color}${capitalizeFirst(stat)}`]--;
-            logEvent(`Manual adjust: ${color.toUpperCase()} ${stat} -1`);
+          updateSuperiorityLead();
+          renderControlDOM();
+          broadcastState();
+        };
+      }
+      
+      if (minusBtn) {
+        minusBtn.onclick = () => {
+          if (stat === "gamjeom") {
+            if (state[`${color}Gamjeom`] > 0) {
+              state[`${color}Gamjeom`]--;
+              // Remove the point added to opponent as well
+              const opponent = color === "blue" ? "red" : "blue";
+              if (state[`${opponent}Score`] > 0) {
+                state[`${opponent}Score`]--;
+              }
+              logEvent(`Manual adjust: Removed Gam-jeom penalty from ${color.toUpperCase()}. Opponent ${opponent.toUpperCase()} -1 point.`);
+            }
+          } else {
+            if (state[`${color}${capitalizeFirst(stat)}`] > 0) {
+              state[`${color}${capitalizeFirst(stat)}`]--;
+              logEvent(`Manual adjust: ${color.toUpperCase()} ${stat} -1`);
+            }
           }
-        }
-        renderControlDOM();
-        broadcastState();
-      };
+          updateSuperiorityLead();
+          renderControlDOM();
+          broadcastState();
+        };
+      }
     });
   });
 }

@@ -123,15 +123,16 @@
       display: flex;
       flex-direction: column;
       flex-grow: 1;
-      gap: 10px;
-      height: calc(100% - 48px);
+      gap: 6px;
+      height: calc(100% - 46px);
     }
 
     .score-row {
       display: flex;
       flex: 1;
-      gap: 10px;
+      gap: 8px;
       position: relative;
+      min-height: 0;
     }
 
     .row-label {
@@ -139,34 +140,46 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: rgba(15, 23, 42, 0.85);
+      background-color: rgba(15, 23, 42, 0.9);
       border: 1px solid #475569;
       color: #e2e8f0;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 0.85rem;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
       font-weight: 800;
       pointer-events: none;
       z-index: 10;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      white-space: nowrap;
+    }
+
+    .row-label.turning {
+      background-color: rgba(30, 41, 59, 0.95);
+      border: 1px solid #f59e0b;
+      color: #fef08a;
     }
 
     .score-btn {
       flex: 1;
       border: none;
-      border-radius: 16px;
+      border-radius: 12px;
       color: white;
-      font-size: 2.2rem;
+      font-size: clamp(1.4rem, 3.8vh, 2rem);
       font-weight: 900;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
       transition: transform 0.05s ease;
       touch-action: manipulation;
       position: relative;
+      line-height: 1.1;
+    }
+
+    .score-btn.turning {
+      border: 2px solid rgba(245, 158, 11, 0.75);
     }
 
     .score-btn.blue {
@@ -186,11 +199,11 @@
     }
 
     .score-btn-sub {
-      font-size: 0.8rem;
-      font-weight: 400;
-      opacity: 0.8;
-      margin-top: 5px;
-      letter-spacing: 1px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      opacity: 0.85;
+      margin-top: 3px;
+      letter-spacing: 0.5px;
     }
 
     .status-toast {
@@ -275,6 +288,32 @@
           <div class="score-btn-sub">紅方</div>
         </button>
       </div>
+
+      <!-- Row 4: 4 Points (Turning Body) -->
+      <div class="score-row">
+        <div class="row-label turning">4分 (中端轉身 🌀)</div>
+        <button class="score-btn blue turning" onclick="sendScore('blue', 4)">
+          +4
+          <div class="score-btn-sub">藍方轉身</div>
+        </button>
+        <button class="score-btn red turning" onclick="sendScore('red', 4)">
+          +4
+          <div class="score-btn-sub">紅方轉身</div>
+        </button>
+      </div>
+
+      <!-- Row 5: 5 Points (Turning Head) -->
+      <div class="score-row">
+        <div class="row-label turning">5分 (上端轉身 🌀)</div>
+        <button class="score-btn blue turning" onclick="sendScore('blue', 5)">
+          +5
+          <div class="score-btn-sub">藍方轉身</div>
+        </button>
+        <button class="score-btn red turning" onclick="sendScore('red', 5)">
+          +5
+          <div class="score-btn-sub">紅方轉身</div>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -324,7 +363,10 @@
     function showToast(points, color) {
       const toast = document.getElementById("toast");
       const colorText = color === "blue" ? "藍方" : "紅方";
-      toast.textContent = `✓ 已送出 ${colorText} ${points} 分`;
+      let pointName = `${points} 分`;
+      if (points === 4) pointName = "4 分 (中端轉身 🌀)";
+      else if (points === 5) pointName = "5 分 (上端轉身 🌀)";
+      toast.textContent = `✓ 已送出 ${colorText} ${pointName}`;
       toast.classList.add("show");
       setTimeout(() => {
         toast.classList.remove("show");
