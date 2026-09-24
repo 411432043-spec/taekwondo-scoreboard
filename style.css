@@ -321,35 +321,13 @@ body {
 /* Giant Score Area */
 .sb-score-container {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-grow: 1;
   height: 55vh;
-  position: relative;
 }
 
-.sb-score-type-badge {
-  display: none;
-  font-size: 1.1vw;
-  font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #fef08a;
-  background: rgba(15, 23, 42, 0.75);
-  padding: 4px 18px;
-  border-radius: 20px;
-  border: 1.5px solid rgba(251, 191, 36, 0.6);
-  margin-bottom: -1.5vh;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  z-index: 2;
-}
-
-.scoreboard-wrapper.rest-mode .sb-score-type-badge {
-  display: inline-block;
-  animation: fadeIn 0.3s ease;
-}
-
+/* Rest Mode Scoreboard Style */
 .scoreboard-wrapper.rest-mode .sb-stats-bar {
   display: none !important;
 }
@@ -358,77 +336,45 @@ body {
   display: grid !important;
 }
 
-/* Sub-Round History Bar (Shown during Rest) */
+/* Background turns to neutral grey during rest mode (no blue or red) */
+.scoreboard-wrapper.rest-mode .sb-player-block.blue-side,
+.scoreboard-wrapper.rest-mode .sb-player-block.red-side {
+  background: #2b303a !important;
+}
+
+/* Sub-Round History Bar (Shown during Rest - exactly like normal stats bar, no frame) */
 .sb-round-history-bar {
   display: none;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1vw;
-  align-items: stretch;
+  align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.8vh 0.5vw 0.5vh 0.5vw;
+  padding: 0.5vh 0.5vw 0 0.5vw;
   height: 15vh;
-  box-sizing: border-box;
 }
 
-.sb-round-card {
-  background: rgba(15, 23, 42, 0.65);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  height: 100%;
+.round-stat-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.4vh 0.4vw;
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(4px);
 }
 
-.sb-round-card.is-winner {
-  border-color: #fbbf24;
-  background: rgba(251, 191, 36, 0.2);
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.35), inset 0 0 12px rgba(251, 191, 36, 0.25);
-}
-
-.sb-round-card-header {
+.round-stat-box .sb-stat-label {
   font-size: 0.95vw;
   font-weight: 800;
-  letter-spacing: 1.5px;
   color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+  margin-bottom: 3px;
   text-transform: uppercase;
-  margin-bottom: 2px;
 }
 
-.sb-round-card.is-winner .sb-round-card-header {
-  color: #fde047;
-  font-weight: 900;
-}
-
-.sb-round-card-score {
+.round-stat-box .sb-stat-val {
   font-family: var(--score-font);
-  font-size: 3.6vw;
+  font-size: 3.5vw;
   font-weight: 900;
   color: #ffffff;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-}
-
-.sb-round-card.is-winner .sb-round-card-score {
-  color: #fef08a;
-  text-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
-}
-
-.sb-round-card-sub {
-  font-size: 0.8vw;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.55);
-  margin-top: 3px;
-  font-variant-numeric: tabular-nums;
-}
-
-.sb-round-card.is-winner .sb-round-card-sub {
-  color: rgba(254, 240, 138, 0.85);
 }
 
 .sb-score {

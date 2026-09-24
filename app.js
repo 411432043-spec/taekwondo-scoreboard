@@ -415,10 +415,6 @@ function renderScoreboardDOM() {
   if (blueScoreElem) {
     blueScoreElem.textContent = state.isRest ? state.blueWins : state.blueScore;
   }
-  const blueScoreBadge = document.getElementById("sb-blue-score-badge");
-  if (blueScoreBadge) {
-    blueScoreBadge.textContent = "ROUND WINS (大分)";
-  }
 
   const blueGamjeomElem = document.getElementById("sb-blue-gamjeom");
   if (blueGamjeomElem) blueGamjeomElem.textContent = state.blueGamjeom;
@@ -437,10 +433,6 @@ function renderScoreboardDOM() {
   const redScoreElem = document.getElementById("sb-red-score");
   if (redScoreElem) {
     redScoreElem.textContent = state.isRest ? state.redWins : state.redScore;
-  }
-  const redScoreBadge = document.getElementById("sb-red-score-badge");
-  if (redScoreBadge) {
-    redScoreBadge.textContent = "ROUND WINS (大分)";
   }
 
   const redGamjeomElem = document.getElementById("sb-red-gamjeom");
@@ -473,32 +465,16 @@ function renderRoundHistoryDOM() {
     const entry = roundScores[r - 1];
     const hasPlayed = Boolean(entry && entry.blue !== null && entry.red !== null);
     
-    // Blue Side
-    const blueCard = document.getElementById(`sb-blue-r${r}-card`);
+    // Blue Side (Standard stat-box: score or --)
     const blueScore = document.getElementById(`sb-blue-r${r}-score`);
-    const blueSub = document.getElementById(`sb-blue-r${r}-sub`);
     if (blueScore) {
       blueScore.textContent = hasPlayed ? entry.blue : "--";
     }
-    if (blueSub) {
-      blueSub.textContent = hasPlayed ? `${entry.blue} - ${entry.red}` : "--";
-    }
-    if (blueCard) {
-      blueCard.classList.toggle("is-winner", Boolean(hasPlayed && entry.winner === "blue"));
-    }
 
-    // Red Side
-    const redCard = document.getElementById(`sb-red-r${r}-card`);
+    // Red Side (Standard stat-box: score or --)
     const redScore = document.getElementById(`sb-red-r${r}-score`);
-    const redSub = document.getElementById(`sb-red-r${r}-sub`);
     if (redScore) {
       redScore.textContent = hasPlayed ? entry.red : "--";
-    }
-    if (redSub) {
-      redSub.textContent = hasPlayed ? `${entry.red} - ${entry.blue}` : "--";
-    }
-    if (redCard) {
-      redCard.classList.toggle("is-winner", Boolean(hasPlayed && entry.winner === "red"));
     }
 
     // Control Panel Summary (if exists)
