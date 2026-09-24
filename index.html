@@ -57,11 +57,11 @@
       <form id="settings-form" onsubmit="return false;">
         <div class="form-group">
           <label for="cfg-match-id">賽事編號</label>
-          <input type="text" id="cfg-match-id" value="A1005">
+          <input type="text" id="cfg-match-id" value="" placeholder="請輸入賽事編號">
         </div>
         <div class="form-group">
           <label for="cfg-match-class">量級 / 級別資訊</label>
-          <input type="text" id="cfg-match-class" value="1/2+ChildMale-25KG">
+          <input type="text" id="cfg-match-class" value="" placeholder="請輸入量級/級別資訊">
         </div>
         
         <hr style="border-color: #334155; margin: 0.5rem 0;">
@@ -69,22 +69,22 @@
         <div class="form-row">
           <div class="form-group">
             <label for="cfg-blue-name">藍方選手姓名</label>
-            <input type="text" id="cfg-blue-name" value="Jim">
+            <input type="text" id="cfg-blue-name" value="" placeholder="選手姓名">
           </div>
           <div class="form-group">
             <label for="cfg-red-name">紅方選手姓名</label>
-            <input type="text" id="cfg-red-name" value="Jack">
+            <input type="text" id="cfg-red-name" value="" placeholder="選手姓名">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="cfg-blue-team">藍方所屬單位</label>
-            <input type="text" id="cfg-blue-team" value="Washington">
+            <input type="text" id="cfg-blue-team" value="" placeholder="所屬單位">
           </div>
           <div class="form-group">
             <label for="cfg-red-team">紅方所屬單位</label>
-            <input type="text" id="cfg-red-team" value="New York">
+            <input type="text" id="cfg-red-team" value="" placeholder="所屬單位">
           </div>
         </div>
 
@@ -190,7 +190,7 @@
     <main class="ctrl-center-panel">
       <div class="ctrl-screen-header">
         <h2 style="font-weight: 800; font-size: 1.1rem;">主裁判控制面板</h2>
-        <div id="ctrl-match-badge" class="ctrl-match-badge">A1005 - R1 MATCH</div>
+        <div id="ctrl-match-badge" class="ctrl-match-badge">R1 MATCH</div>
       </div>
 
       <!-- Timer Control Zone -->
@@ -201,7 +201,7 @@
           <button id="btn-timer-toggle" class="btn-primary btn-timer-play">START (Space)</button>
           <button id="btn-timer-minus10" class="btn-secondary">-10 秒</button>
         </div>
-        <button id="btn-next-round" class="btn-secondary" style="background-color: #7c3aed; color: #fff; width: 100%; max-width: 250px; font-weight: 700;">強制進入下一局</button>
+        <button id="btn-next-round" class="btn-secondary" style="background-color: #7c3aed; color: #fff; width: 100%; max-width: 250px; font-weight: 700;">強制結束本局</button>
       </section>
 
       <!-- Competitor Score adjustment cards -->
@@ -209,8 +209,8 @@
         <!-- Blue Player Column -->
         <div class="ctrl-adjust-card blue-side">
           <div class="ctrl-card-title">
-            <h3 id="ctrl-blue-card-title">Jim</h3>
-            <span id="ctrl-blue-card-sub">Washington</span>
+            <h3 id="ctrl-blue-card-title">藍方</h3>
+            <span id="ctrl-blue-card-sub"></span>
           </div>
 
           <div class="ctrl-adjust-item">
@@ -255,8 +255,8 @@
         <!-- Red Player Column -->
         <div class="ctrl-adjust-card red-side">
           <div class="ctrl-card-title">
-            <h3 id="ctrl-red-card-title">Jack</h3>
-            <span id="ctrl-red-card-sub">New York</span>
+            <h3 id="ctrl-red-card-title">紅方</h3>
+            <span id="ctrl-red-card-sub"></span>
           </div>
 
           <div class="ctrl-adjust-item">
@@ -348,7 +348,7 @@
       </div>
       
       <!-- Center: Division Name -->
-      <div id="sb-match-class" class="sb-match-class">1/2+ChildMale-25KG</div>
+      <div id="sb-match-class" class="sb-match-class"></div>
       
       <!-- Right: Empty/Flags placeholder or additional round-wins info -->
       <div class="sb-header-right">
@@ -365,8 +365,8 @@
         <div class="sb-player-meta blue-side">
 
           <div class="sb-player-info">
-            <div id="sb-blue-name" class="sb-player-name">Jim</div>
-            <div id="sb-blue-team" class="sb-player-team">Washington</div>
+            <div id="sb-blue-name" class="sb-player-name"></div>
+            <div id="sb-blue-team" class="sb-player-team"></div>
           </div>
           <div class="win-dots-group" id="sb-blue-win-dots">
             <!-- Win indicators -->
@@ -403,7 +403,7 @@
       <section class="sb-center-col">
         <!-- Match number -->
         <div class="sb-match-num-box">
-          <div id="sb-match-id" class="sb-match-id">A1005 MATCH</div>
+          <div id="sb-match-id" class="sb-match-id"></div>
           <div class="sb-match-label">MATCH</div>
         </div>
         
@@ -426,8 +426,8 @@
         <div class="sb-player-meta red-side">
 
           <div class="sb-player-info">
-            <div id="sb-red-name" class="sb-player-name">Jack</div>
-            <div id="sb-red-team" class="sb-player-team">New York</div>
+            <div id="sb-red-name" class="sb-player-name"></div>
+            <div id="sb-red-team" class="sb-player-team"></div>
           </div>
           <div class="win-dots-group" id="sb-red-win-dots">
             <!-- Win indicators -->

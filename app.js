@@ -4,18 +4,18 @@
 
 // Global Configuration & State
 let state = {
-  matchId: "A1005",
-  matchClass: "1/2+ChildMale-25KG",
+  matchId: "",
+  matchClass: "",
   
-  blueName: "Jim",
-  blueTeam: "Washington",
+  blueName: "",
+  blueTeam: "",
   blueScore: 0,
   blueGamjeom: 0,
   blueHits: 0,
   blueWins: 0,
   
-  redName: "Jack",
-  redTeam: "New York",
+  redName: "",
+  redTeam: "",
   redScore: 0,
   redGamjeom: 0,
   redHits: 0,
@@ -189,7 +189,7 @@ function getFlagMarkup(countryCode) {
     return flagsDB[code];
   }
   // Generic fall back - styling text badge
-  return `<div class="sb-flag-placeholder">${code || "???"}</div>`;
+  return `<div class="sb-flag-placeholder">${code || "🏳️"}</div>`;
 }
 
 // ==========================================================================
@@ -263,6 +263,12 @@ function initScoreboard() {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
+      if (parsed.blueName === "Jim") parsed.blueName = "";
+      if (parsed.redName === "Jack") parsed.redName = "";
+      if (parsed.blueTeam === "Washington") parsed.blueTeam = "";
+      if (parsed.redTeam === "New York") parsed.redTeam = "";
+      if (parsed.matchId === "A1005") parsed.matchId = "";
+      if (parsed.matchClass === "1/2+ChildMale-25KG") parsed.matchClass = "";
       updateScoreboardState(parsed);
     } catch(e) {}
   }
@@ -360,17 +366,17 @@ function handleScoreboardKeyboardInput(e) {
 function renderScoreboardDOM() {
   // Update Match Details
   const matchIdElem = document.getElementById("sb-match-id");
-  if (matchIdElem) matchIdElem.textContent = state.matchId + " MATCH";
+  if (matchIdElem) matchIdElem.textContent = state.matchId ? (state.matchId + " MATCH") : "";
   const matchClassElem = document.getElementById("sb-match-class");
-  if (matchClassElem) matchClassElem.textContent = state.matchClass;
+  if (matchClassElem) matchClassElem.textContent = state.matchClass || "";
   const roundNumElem = document.getElementById("sb-round-num");
   if (roundNumElem) roundNumElem.textContent = state.currentRound;
 
   // Blue Side Info
   const blueNameElem = document.getElementById("sb-blue-name");
-  if (blueNameElem) blueNameElem.textContent = state.blueName;
+  if (blueNameElem) blueNameElem.textContent = state.blueName || "";
   const blueTeamElem = document.getElementById("sb-blue-team");
-  if (blueTeamElem) blueTeamElem.textContent = state.blueTeam;
+  if (blueTeamElem) blueTeamElem.textContent = state.blueTeam || "";
   const blueScoreElem = document.getElementById("sb-blue-score");
   if (blueScoreElem) blueScoreElem.textContent = state.blueScore;
   const blueGamjeomElem = document.getElementById("sb-blue-gamjeom");
@@ -382,9 +388,9 @@ function renderScoreboardDOM() {
   
   // Red Side Info
   const redNameElem = document.getElementById("sb-red-name");
-  if (redNameElem) redNameElem.textContent = state.redName;
+  if (redNameElem) redNameElem.textContent = state.redName || "";
   const redTeamElem = document.getElementById("sb-red-team");
-  if (redTeamElem) redTeamElem.textContent = state.redTeam;
+  if (redTeamElem) redTeamElem.textContent = state.redTeam || "";
   const redScoreElem = document.getElementById("sb-red-score");
   if (redScoreElem) redScoreElem.textContent = state.redScore;
   const redGamjeomElem = document.getElementById("sb-red-gamjeom");
@@ -491,6 +497,12 @@ function initControl() {
       state = JSON.parse(stored);
       state.timerRunning = false;
       state.timerEndTime = null;
+      if (state.blueName === "Jim") state.blueName = "";
+      if (state.redName === "Jack") state.redName = "";
+      if (state.blueTeam === "Washington") state.blueTeam = "";
+      if (state.redTeam === "New York") state.redTeam = "";
+      if (state.matchId === "A1005") state.matchId = "";
+      if (state.matchClass === "1/2+ChildMale-25KG") state.matchClass = "";
     } catch(e) {}
   }
   
@@ -649,7 +661,7 @@ function initMobileScoring() {
         mobileUrl = `${window.location.protocol}//${cleanIp}/mobile.html`;
       }
       
-      qrStatus.innerHTML = `? <strong>??????!</strong><br>????? QR Code ????:`;
+      qrStatus.innerHTML = `✅ <strong>伺服器已啟動！</strong><br>請掃描下方 QR Code 連線評分：`;
       qrContainer.style.display = "block";
       
       // Clear container and render QR
@@ -668,7 +680,7 @@ function initMobileScoring() {
     })
     .catch(err => {
       console.log("Not running local server, QR disabled:", err);
-      qrStatus.innerHTML = `?? <strong>????:</strong><br>??????,?????? <code style="background:#1e293b;padding:2px 4px;border-radius:4px;">.\\start_server.ps1</code> ?????????`;
+      qrStatus.innerHTML = `💡 <strong>離線提示：</strong><br>如需手機評分，請在主機執行 <code style="background:#1e293b;padding:2px 4px;border-radius:4px;">.\\start_server.ps1</code> 後重新載入此頁面。`;
       qrContainer.style.display = "none";
       qrUrlText.textContent = "";
     });
@@ -1072,7 +1084,9 @@ function syncControlForm() {
 
 function renderControlDOM() {
   // Center Control Display
-  document.getElementById("ctrl-match-badge").textContent = `${state.matchId} - R${state.currentRound} ${state.isRest ? 'REST' : 'MATCH'}`;
+  document.getElementById("ctrl-match-badge").textContent = state.matchId 
+    ? `${state.matchId} - R${state.currentRound} ${state.isRest ? 'REST' : 'MATCH'}`
+    : `R${state.currentRound} ${state.isRest ? 'REST' : 'MATCH'}`;
   document.getElementById("ctrl-timer-time").textContent = formatTime(state.currentTime);
   
   // Active Timer Play Button Label
@@ -1088,21 +1102,21 @@ function renderControlDOM() {
   // Next Round / End Round button text
   const nextBtn = document.getElementById("btn-next-round");
   if (state.isRest) {
-    nextBtn.textContent = "???? / ????? (Skip Rest)";
+    nextBtn.textContent = "跳過休息 / 開始下一局 (Skip Rest)";
   } else {
-    nextBtn.textContent = "?????? (End Round)";
+    nextBtn.textContent = "強制結束本局 (End Round)";
   }
 
   // Competitor Card details
-  document.getElementById("ctrl-blue-card-title").textContent = state.blueName;
-  document.getElementById("ctrl-blue-card-sub").textContent = state.blueTeam;
+  document.getElementById("ctrl-blue-card-title").textContent = state.blueName || "藍方";
+  document.getElementById("ctrl-blue-card-sub").textContent = state.blueTeam || "";
   document.getElementById("ctrl-blue-score-val").textContent = state.blueScore;
   document.getElementById("ctrl-blue-gamjeom-val").textContent = state.blueGamjeom;
   document.getElementById("ctrl-blue-hits-val").textContent = state.blueHits;
   document.getElementById("ctrl-blue-wins-val").textContent = state.blueWins;
 
-  document.getElementById("ctrl-red-card-title").textContent = state.redName;
-  document.getElementById("ctrl-red-card-sub").textContent = state.redTeam;
+  document.getElementById("ctrl-red-card-title").textContent = state.redName || "紅方";
+  document.getElementById("ctrl-red-card-sub").textContent = state.redTeam || "";
   document.getElementById("ctrl-red-score-val").textContent = state.redScore;
   document.getElementById("ctrl-red-gamjeom-val").textContent = state.redGamjeom;
   document.getElementById("ctrl-red-hits-val").textContent = state.redHits;
