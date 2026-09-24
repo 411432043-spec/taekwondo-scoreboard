@@ -46,7 +46,7 @@ let state = {
   ],
   
   consensusWindow: 1.0, // seconds
-  minConsensusJudges: 2, // minimum judges agreeing for consensus (1 for single tester, 2 for WT rule)
+  minConsensusJudges: 1, // default to 1 for instant single-tester feedback (can be switched to 2 in control panel)
   pointsPerHit: 2, // points awarded for body kick consensus
   pointLockoutTime: 1.5, // seconds lockout after scoring
   
@@ -913,8 +913,8 @@ function checkConsensus(judgeIndex, color, points) {
     }
   }
   
-  // Consensus reached if matching judges reach required threshold (1 for single tester, 2 for WT rule)
-  const requiredJudges = Math.max(1, state.minConsensusJudges || 2);
+  // Consensus reached if matching judges reach required threshold (default 1 for instant response)
+  const requiredJudges = Math.max(1, state.minConsensusJudges !== undefined ? state.minConsensusJudges : 1);
   if (matchingJudges.length >= requiredJudges) {
     // Award score points and confirmed registered hit
     state[`${color}Score`] += points;
@@ -1171,7 +1171,7 @@ function applySettings(e) {
   const consensusWinEl = document.getElementById("cfg-consensus-window");
   if (consensusWinEl) state.consensusWindow = parseFloat(consensusWinEl.value);
   const minJudgesEl = document.getElementById("cfg-min-judges");
-  if (minJudgesEl) state.minConsensusJudges = parseInt(minJudgesEl.value) || 2;
+  if (minJudgesEl) state.minConsensusJudges = parseInt(minJudgesEl.value) || 1;
   const pointsHitEl = document.getElementById("cfg-points-hit");
   if (pointsHitEl) state.pointsPerHit = parseInt(pointsHitEl.value) || 2;
   const lockoutEl = document.getElementById("cfg-lockout-time");
@@ -1337,7 +1337,7 @@ function syncControlForm() {
   const consensusWinEl = document.getElementById("cfg-consensus-window");
   if (consensusWinEl) consensusWinEl.value = state.consensusWindow;
   const minJudgesEl = document.getElementById("cfg-min-judges");
-  if (minJudgesEl) minJudgesEl.value = state.minConsensusJudges || 2;
+  if (minJudgesEl) minJudgesEl.value = state.minConsensusJudges || 1;
   const pointsHitEl = document.getElementById("cfg-points-hit");
   if (pointsHitEl) pointsHitEl.value = state.pointsPerHit || 2;
   const lockoutEl = document.getElementById("cfg-lockout-time");
