@@ -40,6 +40,7 @@ let state = {
   timestamp: 0,
   
   consensusWindow: 1.0, // seconds
+  minConsensusJudges: 2, // minimum judges agreeing for consensus (1 for single tester, 2 for WT rule)
   pointsPerHit: 2, // points awarded for body kick consensus
   pointLockoutTime: 1.5, // seconds lockout after scoring
   
@@ -837,8 +838,9 @@ function checkConsensus(judgeIndex, color, points) {
     }
   }
   
-  // Consensus reached if 2 or more judges pressed the same player and score target within the window
-  if (matchingJudges.length >= 2) {
+  // Consensus reached if matching judges reach required threshold (1 for single tester, 2 for WT rule)
+  const requiredJudges = Math.max(1, state.minConsensusJudges || 2);
+  if (matchingJudges.length >= requiredJudges) {
     // Award score points and confirmed registered hit
     state[`${color}Score`] += points;
     state[`${color}Hits`]++;
@@ -1070,9 +1072,14 @@ function applySettings(e) {
   state.roundDuration = parseInt(document.getElementById("cfg-round-duration").value);
   state.restDuration = parseInt(document.getElementById("cfg-rest-duration").value);
   
-  state.consensusWindow = parseFloat(document.getElementById("cfg-consensus-window").value);
-  state.pointsPerHit = parseInt(document.getElementById("cfg-points-hit").value);
-  state.pointLockoutTime = parseFloat(document.getElementById("cfg-lockout-time").value);
+  const consensusWinEl = document.getElementById("cfg-consensus-window");
+  if (consensusWinEl) state.consensusWindow = parseFloat(consensusWinEl.value);
+  const minJudgesEl = document.getElementById("cfg-min-judges");
+  if (minJudgesEl) state.minConsensusJudges = parseInt(minJudgesEl.value) || 2;
+  const pointsHitEl = document.getElementById("cfg-points-hit");
+  if (pointsHitEl) state.pointsPerHit = parseInt(pointsHitEl.value) || 2;
+  const lockoutEl = document.getElementById("cfg-lockout-time");
+  if (lockoutEl) state.pointLockoutTime = parseFloat(lockoutEl.value) || 1.5;
   
   // Custom Keyboard mappings
   state.keys.j1Blue = document.getElementById("cfg-key-j1b").value;
@@ -1226,9 +1233,14 @@ function syncControlForm() {
   document.getElementById("cfg-round-duration").value = state.roundDuration;
   document.getElementById("cfg-rest-duration").value = state.restDuration;
   
-  document.getElementById("cfg-consensus-window").value = state.consensusWindow;
-  document.getElementById("cfg-points-hit").value = state.pointsPerHit;
-  document.getElementById("cfg-lockout-time").value = state.pointLockoutTime;
+  const consensusWinEl = document.getElementById("cfg-consensus-window");
+  if (consensusWinEl) consensusWinEl.value = state.consensusWindow;
+  const minJudgesEl = document.getElementById("cfg-min-judges");
+  if (minJudgesEl) minJudgesEl.value = state.minConsensusJudges || 2;
+  const pointsHitEl = document.getElementById("cfg-points-hit");
+  if (pointsHitEl) pointsHitEl.value = state.pointsPerHit || 2;
+  const lockoutEl = document.getElementById("cfg-lockout-time");
+  if (lockoutEl) lockoutEl.value = state.pointLockoutTime || 1.5;
 
   document.getElementById("cfg-key-j1b").value = state.keys.j1Blue;
   document.getElementById("cfg-key-j1r").value = state.keys.j1Red;

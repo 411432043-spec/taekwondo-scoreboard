@@ -119,14 +119,24 @@
             <input type="number" id="cfg-consensus-window" value="1.0" step="0.1">
           </div>
           <div class="form-group">
-            <label for="cfg-points-hit">擊中給分</label>
-            <input type="number" id="cfg-points-hit" value="2">
+            <label for="cfg-min-judges">共識裁判門檻</label>
+            <select id="cfg-min-judges">
+              <option value="1">1 位 (單人測試模式)</option>
+              <option value="2" selected>2 位以上 (正規 WT 規則)</option>
+              <option value="3">3 位一致</option>
+            </select>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="cfg-lockout-time">得分冷卻 (秒)</label>
-          <input type="number" id="cfg-lockout-time" value="1.5" step="0.1">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-points-hit">擊中給分</label>
+            <input type="number" id="cfg-points-hit" value="2">
+          </div>
+          <div class="form-group">
+            <label for="cfg-lockout-time">得分冷卻 (秒)</label>
+            <input type="number" id="cfg-lockout-time" value="1.5" step="0.1">
+          </div>
         </div>
 
         <hr style="border-color: #334155; margin: 0.5rem 0;">
@@ -404,23 +414,22 @@
           <div id="sb-blue-score" class="sb-score">0</div>
         </div>
 
-        <!-- Bottom Stats Row -->
-        <div class="sb-stats-bar">
-
-          <!-- Gam-jeom (Penalties) -->
-          <div class="sb-stat-box">
-            <div class="sb-stat-label">GAM-JEOM</div>
-            <div id="sb-blue-gamjeom" class="sb-stat-val">0</div>
+        <!-- Bottom Stats Row (Blue) -->
+        <div class="sb-stats-bar blue-stats">
+          <!-- Superiority Lead (Outer corner, smaller) -->
+          <div class="sb-stat-box suplead-box">
+            <div class="sb-stat-label">SUP LEAD</div>
+            <div id="sb-blue-suplead" class="sb-stat-val">0</div>
           </div>
-          <!-- Hits Tracker -->
-          <div class="sb-stat-box">
+          <!-- Hits Tracker (Center) -->
+          <div class="sb-stat-box hits-box">
             <div class="sb-stat-label">HITS</div>
             <div id="sb-blue-hits" class="sb-stat-val">0</div>
           </div>
-          <!-- Superiority Lead (placed in bottom left corner) -->
-          <div class="sb-stat-box" style="position: absolute; bottom: 1.5vh; left: 2vw; height: 10vh;">
-            <div class="sb-stat-label" style="font-size: 0.8vw;">SUP LEAD</div>
-            <div id="sb-blue-suplead" class="sb-stat-val" style="font-size: 2.8vw;">0</div>
+          <!-- Gam-jeom (Inner side, prominent & large) -->
+          <div class="sb-stat-box gamjeom-box">
+            <div class="sb-stat-label">GAM-JEOM</div>
+            <div id="sb-blue-gamjeom" class="sb-stat-val">0</div>
           </div>
         </div>
       </section>
@@ -465,23 +474,22 @@
           <div id="sb-red-score" class="sb-score">0</div>
         </div>
 
-        <!-- Bottom Stats Row -->
-        <div class="sb-stats-bar">
-          <!-- Hits Tracker -->
-          <div class="sb-stat-box">
-            <div class="sb-stat-label">HITS</div>
-            <div id="sb-red-hits" class="sb-stat-val">0</div>
-          </div>
-          <!-- Gam-jeom (Penalties) -->
-          <div class="sb-stat-box">
+        <!-- Bottom Stats Row (Red) -->
+        <div class="sb-stats-bar red-stats">
+          <!-- Gam-jeom (Inner side, prominent & large) -->
+          <div class="sb-stat-box gamjeom-box">
             <div class="sb-stat-label">GAM-JEOM</div>
             <div id="sb-red-gamjeom" class="sb-stat-val">0</div>
           </div>
-
-          <!-- Superiority Lead (placed in bottom right corner) -->
-          <div class="sb-stat-box" style="position: absolute; bottom: 1.5vh; right: 2vw; height: 10vh;">
-            <div class="sb-stat-label" style="font-size: 0.8vw;">SUP LEAD</div>
-            <div id="sb-red-suplead" class="sb-stat-val" style="font-size: 2.8vw;">0</div>
+          <!-- Hits Tracker (Center) -->
+          <div class="sb-stat-box hits-box">
+            <div class="sb-stat-label">HITS</div>
+            <div id="sb-red-hits" class="sb-stat-val">0</div>
+          </div>
+          <!-- Superiority Lead (Outer corner, smaller) -->
+          <div class="sb-stat-box suplead-box">
+            <div class="sb-stat-label">SUP LEAD</div>
+            <div id="sb-red-suplead" class="sb-stat-val">0</div>
           </div>
         </div>
       </section>

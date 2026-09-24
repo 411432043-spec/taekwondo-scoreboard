@@ -112,9 +112,14 @@ while ($listener.IsListening) {
                 [System.Threading.Monitor]::Exit($pendingPresses)
             }
             # Convert to array JSON
-            $json = ConvertTo-Json -InputObject $presses -Compress
+            if ($presses.Count -eq 0) {
+                $json = "[]"
+            } else {
+                $json = ConvertTo-Json -InputObject $presses -Compress
+                if (!$json.StartsWith("[")) { $json = "[$json]" }
+            }
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
-            $response.ContentType = "application/json"
+            $response.ContentType = "application/json; charset=utf-8"
             $response.OutputStream.Write($bytes, 0, $bytes.Length)
         }
         elseif ($path -eq "/api/state") {

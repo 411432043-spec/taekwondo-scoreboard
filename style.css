@@ -351,11 +351,18 @@ body {
 /* Bottom Stats Bar */
 .sb-stats-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 1.5vh;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.5vh 0.5vw 0 0.5vw;
   height: 15vh;
+}
+
+.sb-stats-bar.blue-stats {
+  grid-template-columns: 0.85fr 1fr 1.25fr;
+}
+
+.sb-stats-bar.red-stats {
+  grid-template-columns: 1.25fr 1fr 0.85fr;
 }
 
 .sb-stat-box {
@@ -365,20 +372,51 @@ body {
   justify-content: center;
 }
 
-.sb-stat-label {
+/* GAM-JEOM (Large & Prominent) */
+.sb-stat-box.gamjeom-box .sb-stat-label {
   font-size: 1vw;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  margin-bottom: 5px;
+  font-weight: 800;
+  color: #fbbf24;
   letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.sb-stat-box.gamjeom-box .sb-stat-val {
+  font-family: var(--score-font);
+  font-size: 3.8vw;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
 }
 
-.sb-stat-val {
+/* HITS (Standard size) */
+.sb-stat-box.hits-box .sb-stat-label {
+  font-size: 0.95vw;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.sb-stat-box.hits-box .sb-stat-val {
   font-family: var(--score-font);
-  font-size: 3.5vw;
+  font-size: 3.2vw;
   font-weight: 800;
   color: #ffffff;
+  line-height: 1;
+}
+
+/* SUP LEAD (Outer corner, smaller size) */
+.sb-stat-box.suplead-box .sb-stat-label {
+  font-size: 0.75vw;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+.sb-stat-box.suplead-box .sb-stat-val {
+  font-family: var(--score-font);
+  font-size: 2.4vw;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1;
 }
 
