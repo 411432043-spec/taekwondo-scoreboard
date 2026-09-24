@@ -35,6 +35,8 @@ let state = {
   restDuration: 30, // seconds
   currentTime: 60, // seconds
   isRest: false,
+  matchOver: false,
+  winner: null,
   timerRunning: false,
   timerEndTime: null,
   timestamp: 0,
@@ -386,22 +388,31 @@ function handleScoreboardKeyboardInput(e) {
 }
 
 function renderScoreboardDOM() {
-  // Toggle rest-mode class on public scoreboard wrapper
+  const isMajorMode = Boolean(state.isRest || state.matchOver);
+
+  // Toggle rest-mode and match-over classes on public scoreboard wrapper
   const sbWrapper = document.getElementById("view-scoreboard");
   if (sbWrapper) {
-    sbWrapper.classList.toggle("rest-mode", Boolean(state.isRest));
+    sbWrapper.classList.toggle("rest-mode", isMajorMode);
+    sbWrapper.classList.toggle("match-over", Boolean(state.matchOver));
   }
 
   // Update Match Details
   const matchIdElem = document.getElementById("sb-match-id");
-  if (matchIdElem) matchIdElem.textContent = state.matchId ? (state.matchId + " MATCH") : "";
+  if (matchIdElem) {
+    if (state.matchOver) {
+      matchIdElem.textContent = state.matchId ? (state.matchId + " FINAL") : "FINAL";
+    } else {
+      matchIdElem.textContent = state.matchId ? (state.matchId + " MATCH") : "";
+    }
+  }
   const matchClassElem = document.getElementById("sb-match-class");
   if (matchClassElem) matchClassElem.textContent = state.matchClass || "";
   const roundNumElem = document.getElementById("sb-round-num");
-  if (roundNumElem) roundNumElem.textContent = state.currentRound;
+  if (roundNumElem) roundNumElem.textContent = state.matchOver ? "END" : state.currentRound;
   const roundLabelElem = document.getElementById("sb-round-label");
   if (roundLabelElem) {
-    roundLabelElem.textContent = state.isRest ? "REST" : "ROUND";
+    roundLabelElem.textContent = state.matchOver ? "FINAL" : (state.isRest ? "REST" : "ROUND");
   }
 
   // Blue Side Info
@@ -410,10 +421,10 @@ function renderScoreboardDOM() {
   const blueTeamElem = document.getElementById("sb-blue-team");
   if (blueTeamElem) blueTeamElem.textContent = state.blueTeam || "";
   
-  // During rest: giant score switches to 大分 (state.blueWins)
+  // During rest or match over: giant score switches to 大分 (state.blueWins)
   const blueScoreElem = document.getElementById("sb-blue-score");
   if (blueScoreElem) {
-    blueScoreElem.textContent = state.isRest ? state.blueWins : state.blueScore;
+    blueScoreElem.textContent = isMajorMode ? state.blueWins : state.blueScore;
   }
 
   const blueGamjeomElem = document.getElementById("sb-blue-gamjeom");
@@ -429,10 +440,10 @@ function renderScoreboardDOM() {
   const redTeamElem = document.getElementById("sb-red-team");
   if (redTeamElem) redTeamElem.textContent = state.redTeam || "";
   
-  // During rest: giant score switches to 大分 (state.redWins)
+  // During rest or match over: giant score switches to 大分 (state.redWins)
   const redScoreElem = document.getElementById("sb-red-score");
   if (redScoreElem) {
-    redScoreElem.textContent = state.isRest ? state.redWins : state.redScore;
+    redScoreElem.textContent = isMajorMode ? state.redWins : state.redScore;
   }
 
   const redGamjeomElem = document.getElementById("sb-red-gamjeom");
@@ -525,6 +536,17 @@ function updateTimerDisplay(currentTime) {
   const display = document.getElementById("sb-timer-display");
   const label = document.getElementById("sb-timer-label");
   if (!timerBox || !display || !label) return;
+
+  if (state.matchOver) {
+    timerBox.classList.remove("active");
+    timerBox.classList.remove("rest-time");
+    label.textContent = "FINAL";
+    display.textContent = state.winner ? (state.winner === "blue" ? "BLUE" : "RED") : "FINAL";
+    display.style.fontSize = "4.2vw";
+    return;
+  }
+
+  display.style.fontSize = "";
 
   // Stable class toggling (prevents removing & re-adding classes which causes CSS transition flashing)
   timerBox.classList.toggle("active", Boolean(state.timerRunning));
@@ -1119,20 +1141,25 @@ function handlePeriodEnd() {
       };
       
       // Check if match won
-      if (state.blueWins >= 2) {
-        logEvent(`MATCH OVER! Winner: ${state.blueName} (Blue)`);
-        setTimeout(() => alert(`Match Over! ${state.blueName || '藍方'} (Blue) wins the match!`), 50);
-      } else if (state.redWins >= 2) {
-        logEvent(`MATCH OVER! Winner: ${state.redName} (Red)`);
-        setTimeout(() => alert(`Match Over! ${state.redName || '紅方'} (Red) wins the match!`), 50);
+      if (state.blueWins >= 2 || (state.currentRound >= state.roundCount && state.blueWins > state.redWins)) {
+        state.matchOver = true;
+        state.winner = "blue";
+        state.isRest = false;
+        state.timerRunning = false;
+        state.currentTime = 0;
+        logEvent(`MATCH OVER! Winner: ${state.blueName || '藍方'} (Blue)`);
+      } else if (state.redWins >= 2 || (state.currentRound >= state.roundCount && state.redWins > state.blueWins)) {
+        state.matchOver = true;
+        state.winner = "red";
+        state.isRest = false;
+        state.timerRunning = false;
+        state.currentTime = 0;
+        logEvent(`MATCH OVER! Winner: ${state.redName || '紅方'} (Red)`);
+      } else {
+        // Schedule rest between rounds
+        state.isRest = true;
+        state.currentTime = state.restDuration;
       }
-    }
-    
-    // Reset round scores for next round (WT rule: best of 3 is scored per-round)
-    if (state.scoringMode === "bestOf3") {
-      // Prompt operator or schedule rest
-      state.isRest = true;
-      state.currentTime = state.restDuration;
     } else {
       // In totalScore mode, scores carry over, timer just goes to next round
       state.isRest = true;
@@ -1219,6 +1246,8 @@ function resetMatchFully() {
     state.currentRound = 1;
     state.currentTime = state.roundDuration;
     state.isRest = false;
+    state.matchOver = false;
+    state.winner = null;
     state.roundScores = [
       { blue: null, red: null, winner: null },
       { blue: null, red: null, winner: null },

@@ -327,29 +327,55 @@ body {
   height: 55vh;
 }
 
-/* Rest Mode Scoreboard Style */
-.scoreboard-wrapper.rest-mode .sb-stats-bar {
+/* Rest Mode & Match Over Scoreboard Style */
+.scoreboard-wrapper.rest-mode .sb-stats-bar,
+.scoreboard-wrapper.match-over .sb-stats-bar {
   display: none !important;
 }
 
-.scoreboard-wrapper.rest-mode .sb-round-history-bar {
-  display: grid !important;
-}
-
-/* Background turns to neutral grey during rest mode (no blue or red) */
+/* Background turns to neutral grey (no blue or red), extending directly into the center */
 .scoreboard-wrapper.rest-mode .sb-player-block.blue-side,
-.scoreboard-wrapper.rest-mode .sb-player-block.red-side {
+.scoreboard-wrapper.rest-mode .sb-player-block.red-side,
+.scoreboard-wrapper.rest-mode .sb-center-col,
+.scoreboard-wrapper.rest-mode .sb-match-num-box,
+.scoreboard-wrapper.rest-mode .sb-round-box,
+.scoreboard-wrapper.match-over .sb-player-block.blue-side,
+.scoreboard-wrapper.match-over .sb-player-block.red-side,
+.scoreboard-wrapper.match-over .sb-center-col,
+.scoreboard-wrapper.match-over .sb-match-num-box,
+.scoreboard-wrapper.match-over .sb-timer-box,
+.scoreboard-wrapper.match-over .sb-round-box {
   background: #2b303a !important;
+  border-color: #374151 !important;
+  box-shadow: none !important;
 }
 
-/* Sub-Round History Bar (Shown during Rest - exactly like normal stats bar, no frame) */
+/* Sub-Round History Bar - moved to left and right sides (左右兩邊) */
 .sb-round-history-bar {
   display: none;
-  grid-template-columns: repeat(3, 1fr);
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.5vh 0.5vw 0 0.5vw;
   height: 15vh;
+  box-sizing: border-box;
+}
+
+/* Blue side: scores moved to the left */
+.sb-round-history-bar.blue-round-history {
+  justify-content: flex-start;
+  padding: 0.5vh 1vw 0 3vw;
+  gap: 3.5vw;
+}
+
+/* Red side: scores moved to the right */
+.sb-round-history-bar.red-round-history {
+  justify-content: flex-end;
+  padding: 0.5vh 3vw 0 1vw;
+  gap: 3.5vw;
+}
+
+.scoreboard-wrapper.rest-mode .sb-round-history-bar,
+.scoreboard-wrapper.match-over .sb-round-history-bar {
+  display: flex !important;
 }
 
 .round-stat-box {
@@ -357,6 +383,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-width: 6vw;
 }
 
 .round-stat-box .sb-stat-label {
