@@ -347,10 +347,11 @@ function updateScoreboardState(newState) {
   const oldScore = { blue: state.blueScore, red: state.redScore };
   state = newState;
 
-  // Synchronize local countdown end time
+  // Synchronize local countdown end time stably without latency jitter
   if (state.timerRunning && state.timerEndTime) {
-    const drift = state.timestamp ? (Date.now() - state.timestamp) : 0;
-    localTimerEndTime = state.timerEndTime + drift;
+    if (!localTimerEndTime || Math.abs(localTimerEndTime - state.timerEndTime) > 800) {
+      localTimerEndTime = state.timerEndTime;
+    }
     startScoreboardTimerLoop();
   } else {
     localTimerEndTime = null;
@@ -637,11 +638,9 @@ function processJudgeScoring(judgeIndex, color, points, deviceType = "Mobile") {
   flashControlJudgeIndicator(judgeIndex, color);
   channel.postMessage({ type: "JUDGE_HIT_INDICATOR", judgeIndex: judgeIndex, color: color });
 
-  // Increment local keypress logs
-  state[`${color}Hits`]++;
   logEvent(`Judge ${judgeIndex} pressed ${color.toUpperCase()} +${points}pt (${deviceType})`);
   
-  // Check consensus
+  // Check consensus (awards score, confirmed hit, and recalculates WT superiority)
   checkConsensus(judgeIndex, color, points);
   
   // Update UI and broadcast
@@ -840,8 +839,9 @@ function checkConsensus(judgeIndex, color, points) {
   
   // Consensus reached if 2 or more judges pressed the same player and score target within the window
   if (matchingJudges.length >= 2) {
-    // Award score points
+    // Award score points and confirmed registered hit
     state[`${color}Score`] += points;
+    state[`${color}Hits`]++;
     
     // Track technical categories for WT Superiority
     if (points === 4 || points === 5) {
