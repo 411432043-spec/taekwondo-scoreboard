@@ -128,16 +128,10 @@ body {
   background: #0f172a;
 }
 
-/* Header Bar */
+/* Header Bar (Removed - main grid extended to full top edge) */
 .sb-header {
-  height: 8vh;
-  min-height: 50px;
-  background-color: #22252a;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2vw;
-  border-bottom: 2px solid #1e293b;
+  display: none !important;
+  height: 0;
 }
 
 .sb-logo-container {
@@ -166,11 +160,19 @@ body {
 }
 
 .sb-match-class {
-  font-size: 1.6vw;
+  font-size: 1.1vw;
   font-weight: 800;
-  color: #ffffff;
+  color: #9ca3af;
   text-align: center;
-  flex-grow: 1;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  max-width: 90%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-match-class:empty {
+  display: none;
 }
 
 .sb-header-right {
@@ -211,8 +213,9 @@ body {
 .sb-main-grid {
   display: grid;
   grid-template-columns: 42.5% 15% 42.5%;
-  height: 92vh;
+  height: 100vh;
   width: 100%;
+  overflow: hidden;
 }
 
 /* Blue & Red Blocks */
@@ -220,10 +223,12 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 2vh 2vw;
+  padding: 3vh 2.5vw;
   position: relative;
   overflow: hidden;
   transition: background 0.5s ease;
+  height: 100vh;
+  box-sizing: border-box;
 }
 
 .sb-player-block.blue-side {
@@ -324,58 +329,32 @@ body {
   align-items: center;
   justify-content: center;
   flex-grow: 1;
-  height: 55vh;
+  height: 58vh;
 }
 
-/* Rest Mode & Match Over Scoreboard Style */
-.scoreboard-wrapper.rest-mode .sb-stats-bar,
-.scoreboard-wrapper.match-over .sb-stats-bar {
+/* Rest Mode Scoreboard Style */
+.scoreboard-wrapper.rest-mode .sb-stats-bar {
   display: none !important;
 }
 
-/* Background turns to neutral grey (no blue or red), extending directly into the center */
-.scoreboard-wrapper.rest-mode .sb-player-block.blue-side,
-.scoreboard-wrapper.rest-mode .sb-player-block.red-side,
-.scoreboard-wrapper.rest-mode .sb-center-col,
-.scoreboard-wrapper.rest-mode .sb-match-num-box,
-.scoreboard-wrapper.rest-mode .sb-round-box,
-.scoreboard-wrapper.match-over .sb-player-block.blue-side,
-.scoreboard-wrapper.match-over .sb-player-block.red-side,
-.scoreboard-wrapper.match-over .sb-center-col,
-.scoreboard-wrapper.match-over .sb-match-num-box,
-.scoreboard-wrapper.match-over .sb-timer-box,
-.scoreboard-wrapper.match-over .sb-round-box {
-  background: #2b303a !important;
-  border-color: #374151 !important;
-  box-shadow: none !important;
+.scoreboard-wrapper.rest-mode .sb-round-history-bar {
+  display: grid !important;
 }
 
-/* Sub-Round History Bar - moved to left and right sides (左右兩邊) */
+/* Background turns to neutral grey during rest mode (no blue or red) */
+.scoreboard-wrapper.rest-mode .sb-player-block.blue-side,
+.scoreboard-wrapper.rest-mode .sb-player-block.red-side {
+  background: #2b303a !important;
+}
+
+/* Sub-Round History Bar (Shown during Rest - exactly like normal stats bar, no frame) */
 .sb-round-history-bar {
   display: none;
+  grid-template-columns: repeat(3, 1fr);
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  height: 15vh;
-  box-sizing: border-box;
-}
-
-/* Blue side: scores moved to the left */
-.sb-round-history-bar.blue-round-history {
-  justify-content: flex-start;
-  padding: 0.5vh 1vw 0 3vw;
-  gap: 3.5vw;
-}
-
-/* Red side: scores moved to the right */
-.sb-round-history-bar.red-round-history {
-  justify-content: flex-end;
-  padding: 0.5vh 3vw 0 1vw;
-  gap: 3.5vw;
-}
-
-.scoreboard-wrapper.rest-mode .sb-round-history-bar,
-.scoreboard-wrapper.match-over .sb-round-history-bar {
-  display: flex !important;
+  padding: 0.5vh 0.5vw 0 0.5vw;
+  height: 16vh;
 }
 
 .round-stat-box {
@@ -383,7 +362,6 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 6vw;
 }
 
 .round-stat-box .sb-stat-label {
@@ -406,7 +384,7 @@ body {
 
 .sb-score {
   font-family: var(--score-font);
-  font-size: 26vh;
+  font-size: 30vh;
   font-weight: 800;
   color: #ffffff;
   line-height: 1;
@@ -431,7 +409,7 @@ body {
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   padding: 0.5vh 0.5vw 0 0.5vw;
-  height: 15vh;
+  height: 16vh;
 }
 
 .sb-stats-bar.blue-stats {
@@ -529,7 +507,9 @@ body {
 /* Center Panel (Time and Round) */
 .sb-center-col {
   display: grid;
-  grid-template-rows: 20vh 52vh 20vh;
+  grid-template-rows: 22vh 56vh 22vh;
+  height: 100vh;
+  box-sizing: border-box;
   background-color: #111317;
   border-left: 2px solid #22252a;
   border-right: 2px solid #22252a;
@@ -543,6 +523,7 @@ body {
   justify-content: center;
   border-bottom: 2px solid #22252a;
   color: #ffffff;
+  padding: 1vh 0.5vw;
 }
 
 .sb-match-id {

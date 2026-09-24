@@ -396,18 +396,6 @@
        3. PUBLIC SCOREBOARD VIEW (#scoreboard)
        ========================================================================== -->
   <div id="view-scoreboard" class="scoreboard-wrapper" style="display: none;">
-    <!-- Top Header info -->
-    <header class="sb-header">
-      <!-- Left side placeholder -->
-      <div class="sb-logo-container"></div>
-      
-      <!-- Center: Division Name -->
-      <div id="sb-match-class" class="sb-match-class"></div>
-      
-      <!-- Right: Empty/Flags placeholder or additional round-wins info -->
-      <div class="sb-header-right"></div>
-    </header>
-
     <!-- Main Scoring display grid -->
     <div class="sb-main-grid">
       
@@ -430,8 +418,8 @@
           <div id="sb-blue-score" class="sb-score">0</div>
         </div>
 
-        <!-- Round Score History (Shown during Rest - Blue aligned to left) -->
-        <div class="sb-round-history-bar blue-round-history" id="sb-blue-round-history">
+        <!-- Round Score History (Shown during Rest) -->
+        <div class="sb-round-history-bar" id="sb-blue-round-history">
           <div class="sb-stat-box round-stat-box">
             <div class="sb-stat-label">ROUND 1</div>
             <div id="sb-blue-r1-score" class="sb-stat-val">--</div>
@@ -470,6 +458,7 @@
       <section class="sb-center-col">
         <!-- Match number -->
         <div class="sb-match-num-box">
+          <div id="sb-match-class" class="sb-match-class"></div>
           <div id="sb-match-id" class="sb-match-id"></div>
           <div class="sb-match-label">MATCH</div>
         </div>
@@ -506,8 +495,8 @@
           <div id="sb-red-score" class="sb-score">0</div>
         </div>
 
-        <!-- Round Score History (Shown during Rest - Red aligned to right) -->
-        <div class="sb-round-history-bar red-round-history" id="sb-red-round-history">
+        <!-- Round Score History (Shown during Rest) -->
+        <div class="sb-round-history-bar" id="sb-red-round-history">
           <div class="sb-stat-box round-stat-box">
             <div class="sb-stat-label">ROUND 1</div>
             <div id="sb-red-r1-score" class="sb-stat-val">--</div>
