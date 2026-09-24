@@ -39,6 +39,12 @@ let state = {
   timerEndTime: null,
   timestamp: 0,
   
+  roundScores: [
+    { blue: null, red: null, winner: null },
+    { blue: null, red: null, winner: null },
+    { blue: null, red: null, winner: null }
+  ],
+  
   consensusWindow: 1.0, // seconds
   minConsensusJudges: 2, // minimum judges agreeing for consensus (1 for single tester, 2 for WT rule)
   pointsPerHit: 2, // points awarded for body kick consensus
@@ -380,6 +386,12 @@ function handleScoreboardKeyboardInput(e) {
 }
 
 function renderScoreboardDOM() {
+  // Toggle rest-mode class on public scoreboard wrapper
+  const sbWrapper = document.getElementById("view-scoreboard");
+  if (sbWrapper) {
+    sbWrapper.classList.toggle("rest-mode", Boolean(state.isRest));
+  }
+
   // Update Match Details
   const matchIdElem = document.getElementById("sb-match-id");
   if (matchIdElem) matchIdElem.textContent = state.matchId ? (state.matchId + " MATCH") : "";
@@ -387,14 +399,27 @@ function renderScoreboardDOM() {
   if (matchClassElem) matchClassElem.textContent = state.matchClass || "";
   const roundNumElem = document.getElementById("sb-round-num");
   if (roundNumElem) roundNumElem.textContent = state.currentRound;
+  const roundLabelElem = document.getElementById("sb-round-label");
+  if (roundLabelElem) {
+    roundLabelElem.textContent = state.isRest ? "REST" : "ROUND";
+  }
 
   // Blue Side Info
   const blueNameElem = document.getElementById("sb-blue-name");
   if (blueNameElem) blueNameElem.textContent = state.blueName || "";
   const blueTeamElem = document.getElementById("sb-blue-team");
   if (blueTeamElem) blueTeamElem.textContent = state.blueTeam || "";
+  
+  // During rest: giant score switches to 大分 (state.blueWins)
   const blueScoreElem = document.getElementById("sb-blue-score");
-  if (blueScoreElem) blueScoreElem.textContent = state.blueScore;
+  if (blueScoreElem) {
+    blueScoreElem.textContent = state.isRest ? state.blueWins : state.blueScore;
+  }
+  const blueScoreBadge = document.getElementById("sb-blue-score-badge");
+  if (blueScoreBadge) {
+    blueScoreBadge.textContent = "ROUND WINS (大分)";
+  }
+
   const blueGamjeomElem = document.getElementById("sb-blue-gamjeom");
   if (blueGamjeomElem) blueGamjeomElem.textContent = state.blueGamjeom;
   const blueHitsElem = document.getElementById("sb-blue-hits");
@@ -407,8 +432,17 @@ function renderScoreboardDOM() {
   if (redNameElem) redNameElem.textContent = state.redName || "";
   const redTeamElem = document.getElementById("sb-red-team");
   if (redTeamElem) redTeamElem.textContent = state.redTeam || "";
+  
+  // During rest: giant score switches to 大分 (state.redWins)
   const redScoreElem = document.getElementById("sb-red-score");
-  if (redScoreElem) redScoreElem.textContent = state.redScore;
+  if (redScoreElem) {
+    redScoreElem.textContent = state.isRest ? state.redWins : state.redScore;
+  }
+  const redScoreBadge = document.getElementById("sb-red-score-badge");
+  if (redScoreBadge) {
+    redScoreBadge.textContent = "ROUND WINS (大分)";
+  }
+
   const redGamjeomElem = document.getElementById("sb-red-gamjeom");
   if (redGamjeomElem) redGamjeomElem.textContent = state.redGamjeom;
   const redHitsElem = document.getElementById("sb-red-hits");
@@ -420,12 +454,77 @@ function renderScoreboardDOM() {
   updateWinDots("sb-blue-win-dots", state.blueWins);
   updateWinDots("sb-red-win-dots", state.redWins);
 
+  // Render Sub-round scores (R1, R2, R3)
+  renderRoundHistoryDOM();
+
   // Central Timer
   if (state.timerRunning && localTimerEndTime) {
     const remaining = Math.max(0, (localTimerEndTime - Date.now()) / 1000);
     updateTimerDisplay(remaining);
   } else {
     updateTimerDisplay(state.currentTime);
+  }
+}
+
+function renderRoundHistoryDOM() {
+  const roundScores = state.roundScores || [];
+  
+  for (let r = 1; r <= 3; r++) {
+    const entry = roundScores[r - 1];
+    const hasPlayed = Boolean(entry && entry.blue !== null && entry.red !== null);
+    
+    // Blue Side
+    const blueCard = document.getElementById(`sb-blue-r${r}-card`);
+    const blueScore = document.getElementById(`sb-blue-r${r}-score`);
+    const blueSub = document.getElementById(`sb-blue-r${r}-sub`);
+    if (blueScore) {
+      blueScore.textContent = hasPlayed ? entry.blue : "--";
+    }
+    if (blueSub) {
+      blueSub.textContent = hasPlayed ? `${entry.blue} - ${entry.red}` : "--";
+    }
+    if (blueCard) {
+      blueCard.classList.toggle("is-winner", Boolean(hasPlayed && entry.winner === "blue"));
+    }
+
+    // Red Side
+    const redCard = document.getElementById(`sb-red-r${r}-card`);
+    const redScore = document.getElementById(`sb-red-r${r}-score`);
+    const redSub = document.getElementById(`sb-red-r${r}-sub`);
+    if (redScore) {
+      redScore.textContent = hasPlayed ? entry.red : "--";
+    }
+    if (redSub) {
+      redSub.textContent = hasPlayed ? `${entry.red} - ${entry.blue}` : "--";
+    }
+    if (redCard) {
+      redCard.classList.toggle("is-winner", Boolean(hasPlayed && entry.winner === "red"));
+    }
+
+    // Control Panel Summary (if exists)
+    const ctrlHistory = document.getElementById(`ctrl-history-r${r}`);
+    if (ctrlHistory) {
+      ctrlHistory.textContent = hasPlayed ? `${entry.blue} : ${entry.red}` : "-- : --";
+      if (hasPlayed && entry.winner === "blue") {
+        ctrlHistory.style.color = "#60a5fa";
+      } else if (hasPlayed && entry.winner === "red") {
+        ctrlHistory.style.color = "#f87171";
+      } else {
+        ctrlHistory.style.color = hasPlayed ? "#fbbf24" : "#94a3b8";
+      }
+    }
+  }
+
+  // Update control panel status tag
+  const ctrlStatusTag = document.getElementById("ctrl-round-status-tag");
+  if (ctrlStatusTag) {
+    if (state.isRest) {
+      ctrlStatusTag.textContent = `第 ${state.currentRound} 局休息中 (REST)`;
+      ctrlStatusTag.style.backgroundColor = "#10b981";
+    } else {
+      ctrlStatusTag.textContent = `第 ${state.currentRound} 局進行中 (MATCH)`;
+      ctrlStatusTag.style.backgroundColor = "#3b82f6";
+    }
   }
 }
 
@@ -983,10 +1082,12 @@ function handlePeriodEnd() {
     logEvent(`Round ${state.currentRound} finished.`);
     
     // Decide winner automatically if bestOf3 mode
+    let roundWinner = null;
     if (state.scoringMode === "bestOf3") {
       let winnerText = "";
       if (roundEndedByPenalty) {
         const winnerColor = roundEndedByPenalty;
+        roundWinner = winnerColor;
         state[`${winnerColor}Wins`]++;
         winnerText = `${state[`${winnerColor}Name`] || (winnerColor === "blue" ? "藍方" : "紅方")} (${winnerColor === "blue" ? "Blue" : "Red"}) wins Round ${state.currentRound} by penalty!`;
         logEvent(winnerText);
@@ -996,10 +1097,12 @@ function handlePeriodEnd() {
         const redDisplayName = state.redName || "紅方";
 
         if (state.blueScore > state.redScore) {
+          roundWinner = "blue";
           state.blueWins++;
           winnerText = `${blueDisplayName} (Blue) wins Round ${state.currentRound}`;
           logEvent(`${winnerText} [Score: ${state.blueScore} - ${state.redScore}]`);
         } else if (state.redScore > state.blueScore) {
+          roundWinner = "red";
           state.redWins++;
           winnerText = `${redDisplayName} (Red) wins Round ${state.currentRound}`;
           logEvent(`${winnerText} [Score: ${state.blueScore} - ${state.redScore}]`);
@@ -1008,10 +1111,12 @@ function handlePeriodEnd() {
           updateSuperiorityLead();
 
           if (state.blueSupLead > state.redSupLead) {
+            roundWinner = "blue";
             state.blueWins++;
             winnerText = `${blueDisplayName} (Blue) wins Round ${state.currentRound} by WT Superiority (優勢判定勝)!`;
             logEvent(`${winnerText} [Tied Score: ${state.blueScore}-${state.redScore}, Sup Lead: +${state.blueSupLead}]`);
           } else if (state.redSupLead > state.blueSupLead) {
+            roundWinner = "red";
             state.redWins++;
             winnerText = `${redDisplayName} (Red) wins Round ${state.currentRound} by WT Superiority (優勢判定勝)!`;
             logEvent(`${winnerText} [Tied Score: ${state.blueScore}-${state.redScore}, Sup Lead: +${state.redSupLead}]`);
@@ -1021,14 +1126,29 @@ function handlePeriodEnd() {
           }
         }
       }
+
+      // Record round score
+      if (!state.roundScores) {
+        state.roundScores = [
+          { blue: null, red: null, winner: null },
+          { blue: null, red: null, winner: null },
+          { blue: null, red: null, winner: null }
+        ];
+      }
+      const rIdx = state.currentRound - 1;
+      state.roundScores[rIdx] = {
+        blue: state.blueScore,
+        red: state.redScore,
+        winner: roundWinner
+      };
       
       // Check if match won
       if (state.blueWins >= 2) {
         logEvent(`MATCH OVER! Winner: ${state.blueName} (Blue)`);
-        alert(`Match Over! ${state.blueName} (Blue) wins the match!`);
+        setTimeout(() => alert(`Match Over! ${state.blueName || '藍方'} (Blue) wins the match!`), 50);
       } else if (state.redWins >= 2) {
         logEvent(`MATCH OVER! Winner: ${state.redName} (Red)`);
-        alert(`Match Over! ${state.redName} (Red) wins the match!`);
+        setTimeout(() => alert(`Match Over! ${state.redName || '紅方'} (Red) wins the match!`), 50);
       }
     }
     
@@ -1123,6 +1243,11 @@ function resetMatchFully() {
     state.currentRound = 1;
     state.currentTime = state.roundDuration;
     state.isRest = false;
+    state.roundScores = [
+      { blue: null, red: null, winner: null },
+      { blue: null, red: null, winner: null },
+      { blue: null, red: null, winner: null }
+    ];
     if (state.timerRunning) {
       state.timerRunning = false;
       if (timerInterval) {
@@ -1305,6 +1430,9 @@ function renderControlDOM() {
   document.getElementById("lbl-j2r-map").textContent = state.keys.j2Red.toUpperCase();
   document.getElementById("lbl-j3b-map").textContent = state.keys.j3Blue.toUpperCase();
   document.getElementById("lbl-j3r-map").textContent = state.keys.j3Red.toUpperCase();
+
+  // Render Sub-Round breakdown in Control Panel as well
+  renderRoundHistoryDOM();
 }
 
 function setupAdjustmentButtons() {

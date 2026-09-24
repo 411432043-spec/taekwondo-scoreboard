@@ -214,6 +214,28 @@
         <button id="btn-next-round" class="btn-secondary" style="background-color: #7c3aed; color: #fff; width: 100%; max-width: 250px; font-weight: 700;">強制結束本局</button>
       </section>
 
+      <!-- Sub-Round Score History Summary in Operator Panel -->
+      <section class="ctrl-round-history-section" style="margin: 0.75rem 0; padding: 10px 14px; background: #1e293b; border-radius: 8px; border: 1px solid #334155;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.85rem; font-weight: 800; color: #94a3b8;">每小局比分紀錄 (Round Scores)</span>
+          <span id="ctrl-round-status-tag" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: #3b82f6; color: #fff; font-weight: 700;">第 1 局進行中</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
+          <div style="background: #0f172a; padding: 6px; border-radius: 6px; border: 1px solid #334155;">
+            <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">第一局 (R1)</div>
+            <div id="ctrl-history-r1" style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; font-family: monospace;">-- : --</div>
+          </div>
+          <div style="background: #0f172a; padding: 6px; border-radius: 6px; border: 1px solid #334155;">
+            <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">第二局 (R2)</div>
+            <div id="ctrl-history-r2" style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; font-family: monospace;">-- : --</div>
+          </div>
+          <div style="background: #0f172a; padding: 6px; border-radius: 6px; border: 1px solid #334155;">
+            <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">第三局 (R3)</div>
+            <div id="ctrl-history-r3" style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; font-family: monospace;">-- : --</div>
+          </div>
+        </div>
+      </section>
+
       <!-- Competitor Score adjustment cards -->
       <section class="ctrl-competitor-adjust">
         <!-- Blue Player Column -->
@@ -411,7 +433,27 @@
 
         <!-- Giant Blue Score -->
         <div class="sb-score-container">
+          <div id="sb-blue-score-badge" class="sb-score-type-badge">ROUND WINS (大分)</div>
           <div id="sb-blue-score" class="sb-score">0</div>
+        </div>
+
+        <!-- Round Score History (Shown during Rest) -->
+        <div class="sb-round-history-bar" id="sb-blue-round-history">
+          <div class="sb-round-card" id="sb-blue-r1-card">
+            <div class="sb-round-card-header">ROUND 1</div>
+            <div class="sb-round-card-score" id="sb-blue-r1-score">--</div>
+            <div class="sb-round-card-sub" id="sb-blue-r1-sub">--</div>
+          </div>
+          <div class="sb-round-card" id="sb-blue-r2-card">
+            <div class="sb-round-card-header">ROUND 2</div>
+            <div class="sb-round-card-score" id="sb-blue-r2-score">--</div>
+            <div class="sb-round-card-sub" id="sb-blue-r2-sub">--</div>
+          </div>
+          <div class="sb-round-card" id="sb-blue-r3-card">
+            <div class="sb-round-card-header">ROUND 3</div>
+            <div class="sb-round-card-score" id="sb-blue-r3-score">--</div>
+            <div class="sb-round-card-sub" id="sb-blue-r3-sub">--</div>
+          </div>
         </div>
 
         <!-- Bottom Stats Row (Blue) -->
@@ -451,7 +493,7 @@
         <!-- Round -->
         <div class="sb-round-box">
           <div id="sb-round-num" class="sb-round-num">1</div>
-          <div class="sb-round-label">ROUND</div>
+          <div id="sb-round-label" class="sb-round-label">ROUND</div>
         </div>
       </section>
 
@@ -471,7 +513,27 @@
 
         <!-- Giant Red Score -->
         <div class="sb-score-container">
+          <div id="sb-red-score-badge" class="sb-score-type-badge">ROUND WINS (大分)</div>
           <div id="sb-red-score" class="sb-score">0</div>
+        </div>
+
+        <!-- Round Score History (Shown during Rest) -->
+        <div class="sb-round-history-bar" id="sb-red-round-history">
+          <div class="sb-round-card" id="sb-red-r1-card">
+            <div class="sb-round-card-header">ROUND 1</div>
+            <div class="sb-round-card-score" id="sb-red-r1-score">--</div>
+            <div class="sb-round-card-sub" id="sb-red-r1-sub">--</div>
+          </div>
+          <div class="sb-round-card" id="sb-red-r2-card">
+            <div class="sb-round-card-header">ROUND 2</div>
+            <div class="sb-round-card-score" id="sb-red-r2-score">--</div>
+            <div class="sb-round-card-sub" id="sb-red-r2-sub">--</div>
+          </div>
+          <div class="sb-round-card" id="sb-red-r3-card">
+            <div class="sb-round-card-header">ROUND 3</div>
+            <div class="sb-round-card-score" id="sb-red-r3-score">--</div>
+            <div class="sb-round-card-sub" id="sb-red-r3-sub">--</div>
+          </div>
         </div>
 
         <!-- Bottom Stats Row (Red) -->
