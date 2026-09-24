@@ -471,6 +471,7 @@ body {
   color: #ffffff;
   letter-spacing: -2px;
   transition: color 0.3s ease;
+  font-variant-numeric: tabular-nums;
 }
 
 .sb-timer-box.active .sb-timer-display {
@@ -690,6 +691,7 @@ input:focus, select:focus {
   font-weight: 800;
   color: var(--yellow-timer);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .ctrl-timer-buttons {

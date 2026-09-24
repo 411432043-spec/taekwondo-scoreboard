@@ -30,6 +30,8 @@ let state = {
   currentTime: 60, // seconds
   isRest: false,
   timerRunning: false,
+  timerEndTime: null,
+  timestamp: 0,
   
   consensusWindow: 1.0, // seconds
   pointsPerHit: 2, // points awarded for body kick consensus
@@ -187,7 +189,7 @@ function getFlagMarkup(countryCode) {
     return flagsDB[code];
   }
   // Generic fall back - styling text badge
-  return `<div class="sb-flag-placeholder">${code || "🏳️"}</div>`;
+  return `<div class="sb-flag-placeholder">${code || "???"}</div>`;
 }
 
 // ==========================================================================
@@ -249,6 +251,10 @@ function initSplit() {
 // ==========================================================================
 // Scoreboard Display Screen Logic
 // ==========================================================================
+let lastAppliedTimestamp = 0;
+let scoreboardTimerLoop = null;
+let localTimerEndTime = null;
+
 function initScoreboard() {
   console.log("Scoreboard view initialized");
   
@@ -256,8 +262,8 @@ function initScoreboard() {
   const stored = localStorage.getItem("tkd_state");
   if (stored) {
     try {
-      state = JSON.parse(stored);
-      renderScoreboardDOM();
+      const parsed = JSON.parse(stored);
+      updateScoreboardState(parsed);
     } catch(e) {}
   }
 
@@ -275,7 +281,7 @@ function initScoreboard() {
     }
   };
 
-  // Start polling server state for cross-device/cross-window robustness
+  // Start polling server state for cross-device/cross-window robustness (heartbeat)
   setInterval(() => {
     fetch("/api/state")
       .then(res => {
@@ -288,15 +294,52 @@ function initScoreboard() {
         }
       })
       .catch(e => {});
-  }, 150);
+  }, 1000);
 
   // Scoreboard key listener (allows forwarding keyboard hits if focused)
   window.addEventListener("keydown", handleScoreboardKeyboardInput);
 }
 
+function startScoreboardTimerLoop() {
+  if (scoreboardTimerLoop) return;
+  scoreboardTimerLoop = setInterval(() => {
+    if (!state.timerRunning || !localTimerEndTime) {
+      clearInterval(scoreboardTimerLoop);
+      scoreboardTimerLoop = null;
+      return;
+    }
+    const remaining = Math.max(0, (localTimerEndTime - Date.now()) / 1000);
+    updateTimerDisplay(remaining);
+  }, 30); // ~33fps for continuous, smooth tenth-of-a-second countdown
+}
+
 function updateScoreboardState(newState) {
+  if (!newState) return;
+  
+  // Prevent older out-of-order state (from delayed network/fetch responses) from overwriting newer state
+  if (newState.timestamp && newState.timestamp < lastAppliedTimestamp) {
+    return;
+  }
+  if (newState.timestamp) {
+    lastAppliedTimestamp = newState.timestamp;
+  }
+
   const oldScore = { blue: state.blueScore, red: state.redScore };
   state = newState;
+
+  // Synchronize local countdown end time
+  if (state.timerRunning && state.timerEndTime) {
+    const drift = state.timestamp ? (Date.now() - state.timestamp) : 0;
+    localTimerEndTime = state.timerEndTime + drift;
+    startScoreboardTimerLoop();
+  } else {
+    localTimerEndTime = null;
+    if (scoreboardTimerLoop) {
+      clearInterval(scoreboardTimerLoop);
+      scoreboardTimerLoop = null;
+    }
+  }
+
   renderScoreboardDOM();
   
   // Pulse animation on score increment
@@ -316,36 +359,60 @@ function handleScoreboardKeyboardInput(e) {
 
 function renderScoreboardDOM() {
   // Update Match Details
-  document.getElementById("sb-match-id").textContent = state.matchId + " MATCH";
-  document.getElementById("sb-match-class").textContent = state.matchClass;
-  document.getElementById("sb-round-num").textContent = state.currentRound;
+  const matchIdElem = document.getElementById("sb-match-id");
+  if (matchIdElem) matchIdElem.textContent = state.matchId + " MATCH";
+  const matchClassElem = document.getElementById("sb-match-class");
+  if (matchClassElem) matchClassElem.textContent = state.matchClass;
+  const roundNumElem = document.getElementById("sb-round-num");
+  if (roundNumElem) roundNumElem.textContent = state.currentRound;
 
   // Blue Side Info
-  document.getElementById("sb-blue-name").textContent = state.blueName;
-  document.getElementById("sb-blue-team").textContent = state.blueTeam;
-  document.getElementById("sb-blue-score").textContent = state.blueScore;
-  document.getElementById("sb-blue-gamjeom").textContent = state.blueGamjeom;
-  document.getElementById("sb-blue-hits").textContent = state.blueHits;
-  document.getElementById("sb-blue-suplead").textContent = state.blueGamjeom; // In reference image, it displays gamjeoms or standard lead. Let's make it the superiority lead
+  const blueNameElem = document.getElementById("sb-blue-name");
+  if (blueNameElem) blueNameElem.textContent = state.blueName;
+  const blueTeamElem = document.getElementById("sb-blue-team");
+  if (blueTeamElem) blueTeamElem.textContent = state.blueTeam;
+  const blueScoreElem = document.getElementById("sb-blue-score");
+  if (blueScoreElem) blueScoreElem.textContent = state.blueScore;
+  const blueGamjeomElem = document.getElementById("sb-blue-gamjeom");
+  if (blueGamjeomElem) blueGamjeomElem.textContent = state.blueGamjeom;
+  const blueHitsElem = document.getElementById("sb-blue-hits");
+  if (blueHitsElem) blueHitsElem.textContent = state.blueHits;
+  const blueSupLeadElem = document.getElementById("sb-blue-suplead");
+  if (blueSupLeadElem) blueSupLeadElem.textContent = state.blueGamjeom;
   
   // Red Side Info
-  document.getElementById("sb-red-name").textContent = state.redName;
-  document.getElementById("sb-red-team").textContent = state.redTeam;
-  document.getElementById("sb-red-score").textContent = state.redScore;
-  document.getElementById("sb-red-gamjeom").textContent = state.redGamjeom;
-  document.getElementById("sb-red-hits").textContent = state.redHits;
-  document.getElementById("sb-red-suplead").textContent = state.redGamjeom;
+  const redNameElem = document.getElementById("sb-red-name");
+  if (redNameElem) redNameElem.textContent = state.redName;
+  const redTeamElem = document.getElementById("sb-red-team");
+  if (redTeamElem) redTeamElem.textContent = state.redTeam;
+  const redScoreElem = document.getElementById("sb-red-score");
+  if (redScoreElem) redScoreElem.textContent = state.redScore;
+  const redGamjeomElem = document.getElementById("sb-red-gamjeom");
+  if (redGamjeomElem) redGamjeomElem.textContent = state.redGamjeom;
+  const redHitsElem = document.getElementById("sb-red-hits");
+  if (redHitsElem) redHitsElem.textContent = state.redHits;
+  const redSupLeadElem = document.getElementById("sb-red-suplead");
+  if (redSupLeadElem) redSupLeadElem.textContent = state.redGamjeom;
 
   // Round Win Dots
   updateWinDots("sb-blue-win-dots", state.blueWins);
   updateWinDots("sb-red-win-dots", state.redWins);
 
   // Central Timer
-  updateTimerDisplay();
+  if (state.timerRunning && localTimerEndTime) {
+    const remaining = Math.max(0, (localTimerEndTime - Date.now()) / 1000);
+    updateTimerDisplay(remaining);
+  } else {
+    updateTimerDisplay(state.currentTime);
+  }
 }
 
 function updateWinDots(elementId, winsCount) {
   const container = document.getElementById(elementId);
+  if (!container) return;
+  if (container.dataset.renderedWins === String(winsCount)) return;
+  container.dataset.renderedWins = String(winsCount);
+
   container.innerHTML = "";
   // In reference image: best of 3, shows up to 2 active purple circles
   for (let i = 1; i <= 2; i++) {
@@ -356,33 +423,29 @@ function updateWinDots(elementId, winsCount) {
   }
 }
 
-function updateTimerDisplay() {
+function updateTimerDisplay(currentTime) {
   const timerBox = document.getElementById("sb-timer-box");
   const display = document.getElementById("sb-timer-display");
   const label = document.getElementById("sb-timer-label");
+  if (!timerBox || !display || !label) return;
 
-  // Timer box color class
-  timerBox.className = "sb-timer-box";
-  if (state.timerRunning) {
-    timerBox.classList.add("active");
-  }
-  if (state.isRest) {
-    timerBox.classList.add("rest-time");
-    label.textContent = "REST";
-  } else {
-    label.textContent = "MATCH";
-  }
+  // Stable class toggling (prevents removing & re-adding classes which causes CSS transition flashing)
+  timerBox.classList.toggle("active", Boolean(state.timerRunning));
+  timerBox.classList.toggle("rest-time", Boolean(state.isRest));
+  label.textContent = state.isRest ? "REST" : "MATCH";
 
   // Time format
-  display.textContent = formatTime(state.currentTime);
+  const timeVal = (currentTime !== undefined) ? currentTime : state.currentTime;
+  display.textContent = formatTime(timeVal);
 }
 
 function formatTime(totalSeconds) {
-  if (totalSeconds <= 0) return "0:00";
+  if (totalSeconds <= 0) {
+    return (!state.isRest) ? "0.0" : "0:00";
+  }
   
   // Show tenths of a second in the last 10 seconds of round (not rest)
   if (totalSeconds <= 10 && !state.isRest) {
-    // We assume state.currentTime is a float or number. To support tenths, we can keep it as float
     return totalSeconds.toFixed(1);
   }
   
@@ -426,6 +489,8 @@ function initControl() {
   if (stored) {
     try {
       state = JSON.parse(stored);
+      state.timerRunning = false;
+      state.timerEndTime = null;
     } catch(e) {}
   }
   
@@ -479,7 +544,10 @@ function initControl() {
 }
 
 function broadcastState() {
-  localStorage.setItem("tkd_state", JSON.stringify(state));
+  state.timestamp = Date.now();
+  try {
+    localStorage.setItem("tkd_state", JSON.stringify(state));
+  } catch (e) {}
   channel.postMessage({ type: "STATE_UPDATE", state: state });
   
   // Post state to server for cross-device/cross-window synchronization
@@ -581,7 +649,7 @@ function initMobileScoring() {
         mobileUrl = `${window.location.protocol}//${cleanIp}/mobile.html`;
       }
       
-      qrStatus.innerHTML = `✅ <strong>伺服器已啟動！</strong><br>請掃描下方 QR Code 連線評分：`;
+      qrStatus.innerHTML = `? <strong>??????!</strong><br>????? QR Code ????:`;
       qrContainer.style.display = "block";
       
       // Clear container and render QR
@@ -600,7 +668,7 @@ function initMobileScoring() {
     })
     .catch(err => {
       console.log("Not running local server, QR disabled:", err);
-      qrStatus.innerHTML = `💡 <strong>離線提示：</strong><br>如需手機評分，請在主機執行 <code style="background:#1e293b;padding:2px 4px;border-radius:4px;">.\\start_server.ps1</code> 後重新載入此頁面。`;
+      qrStatus.innerHTML = `?? <strong>????:</strong><br>??????,?????? <code style="background:#1e293b;padding:2px 4px;border-radius:4px;">.\\start_server.ps1</code> ?????????`;
       qrContainer.style.display = "none";
       qrUrlText.textContent = "";
     });
@@ -624,11 +692,8 @@ function pollMobileInputs() {
       }
     })
     .catch(err => {
-      console.warn("Polling failed, stopping poll interval:", err);
-      if (mobilePollInterval) {
-        clearInterval(mobilePollInterval);
-        mobilePollInterval = null;
-      }
+      // Do not kill polling interval on transient network error
+      console.warn("Mobile polling notice:", err);
     });
 }
 
@@ -697,39 +762,81 @@ function checkConsensus(judgeIndex, color, points) {
 }
 
 // Timer management
+let lastHeartbeatTime = 0;
+
 function toggleTimer() {
   if (state.timerRunning) {
     // Pause
     state.timerRunning = false;
-    clearInterval(timerInterval);
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    if (state.timerEndTime) {
+      state.currentTime = Math.max(0, Math.round((state.timerEndTime - Date.now()) / 100) / 10);
+      state.timerEndTime = null;
+    }
+    state.timestamp = Date.now();
     logEvent("Timer Paused");
+    renderControlDOM();
+    broadcastState();
   } else {
     // Play
     initAudio(); // Warm up audio context
     state.timerRunning = true;
+    state.timerEndTime = Date.now() + Math.round(state.currentTime * 1000);
+    state.timestamp = Date.now();
     
-    // Timer interval set at 100ms for tenth-second resolution in final seconds
-    timerInterval = setInterval(() => {
-      if (state.currentTime <= 0.1) {
-        state.currentTime = 0;
-        state.timerRunning = false;
-        clearInterval(timerInterval);
-        
-        // Round / rest period completed
-        broadcastSound("buzzer");
-        handlePeriodEnd();
-      } else {
-        state.currentTime = Math.round((state.currentTime - 0.1) * 10) / 10;
-      }
-      renderControlDOM();
-      broadcastState();
-    }, 100);
+    startControlTimer();
     
     logEvent(`Timer Started (${state.isRest ? 'REST' : 'MATCH'} period)`);
+    renderControlDOM();
+    broadcastState();
   }
+}
+
+function startControlTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  lastHeartbeatTime = Date.now();
   
-  renderControlDOM();
-  broadcastState();
+  timerInterval = setInterval(() => {
+    if (!state.timerRunning || !state.timerEndTime) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      return;
+    }
+    
+    const remainingMs = state.timerEndTime - Date.now();
+    if (remainingMs <= 30) {
+      state.currentTime = 0;
+      state.timerRunning = false;
+      state.timerEndTime = null;
+      state.timestamp = Date.now();
+      clearInterval(timerInterval);
+      timerInterval = null;
+      
+      // Round / rest period completed
+      broadcastSound("buzzer");
+      handlePeriodEnd();
+      renderControlDOM();
+      broadcastState();
+    } else {
+      state.currentTime = Math.max(0, Math.round(remainingMs / 100) / 10);
+      const timerElem = document.getElementById("ctrl-timer-time");
+      if (timerElem) timerElem.textContent = formatTime(state.currentTime);
+      
+      // Low-frequency heartbeat (every 1 second) to keep remote devices aligned without spamming network
+      const now = Date.now();
+      if (now - lastHeartbeatTime >= 1000) {
+        lastHeartbeatTime = now;
+        state.timestamp = now;
+        channel.postMessage({ type: "STATE_UPDATE", state: state });
+        try {
+          localStorage.setItem("tkd_state", JSON.stringify(state));
+        } catch (e) {}
+      }
+    }
+  }, 50);
 }
 
 function handlePeriodEnd() {
@@ -802,7 +909,11 @@ function handlePeriodEnd() {
 }
 
 function adjustTimer(secs) {
-  state.currentTime = Math.max(0, state.currentTime + secs);
+  state.currentTime = Math.max(0, Math.round((state.currentTime + secs) * 10) / 10);
+  if (state.timerRunning && state.timerEndTime) {
+    state.timerEndTime += secs * 1000;
+  }
+  state.timestamp = Date.now();
   logEvent(`Timer adjusted by ${secs}s. New time: ${formatTime(state.currentTime)}`);
   renderControlDOM();
   broadcastState();
@@ -840,6 +951,7 @@ function applySettings(e) {
   if (!state.timerRunning && !state.isRest) {
     state.currentTime = state.roundDuration;
   }
+  state.timestamp = Date.now();
 
   logEvent("Settings applied and synced.");
   renderControlDOM();
@@ -865,8 +977,13 @@ function resetMatchFully() {
     state.isRest = false;
     if (state.timerRunning) {
       state.timerRunning = false;
-      clearInterval(timerInterval);
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
     }
+    state.timerEndTime = null;
+    state.timestamp = Date.now();
     
     // Clear judge records
     judgePresses = {
@@ -891,8 +1008,13 @@ function resetMatchFully() {
 function forceEndPeriod() {
   if (state.timerRunning) {
     state.timerRunning = false;
-    clearInterval(timerInterval);
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
   }
+  state.timerEndTime = null;
+  state.timestamp = Date.now();
   
   if (state.isRest) {
     // Skip Rest and start next round
@@ -966,9 +1088,9 @@ function renderControlDOM() {
   // Next Round / End Round button text
   const nextBtn = document.getElementById("btn-next-round");
   if (state.isRest) {
-    nextBtn.textContent = "跳過休息 / 開始下一局 (Skip Rest)";
+    nextBtn.textContent = "???? / ????? (Skip Rest)";
   } else {
-    nextBtn.textContent = "強制結束本局 (End Round)";
+    nextBtn.textContent = "?????? (End Round)";
   }
 
   // Competitor Card details

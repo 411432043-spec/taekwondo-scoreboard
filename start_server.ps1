@@ -41,6 +41,7 @@ try {
 
 # Queue for storing referee button inputs
 $pendingPresses = [System.Collections.Generic.List[string]]::new()
+$matchStateJson = "null"
 
 while ($listener.IsListening) {
     try {
@@ -115,6 +116,19 @@ while ($listener.IsListening) {
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
             $response.ContentType = "application/json"
             $response.OutputStream.Write($bytes, 0, $bytes.Length)
+        }
+        elseif ($path -eq "/api/state") {
+            if ($request.HttpMethod -eq "POST") {
+                $reader = New-Object System.IO.StreamReader($request.InputStream, [System.Text.Encoding]::UTF8)
+                $matchStateJson = $reader.ReadToEnd()
+                $reader.Close()
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes("ok")
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+            } else {
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($matchStateJson)
+                $response.ContentType = "application/json; charset=utf-8"
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+            }
         }
         else {
             $response.StatusCode = 404
