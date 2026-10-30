@@ -75,6 +75,17 @@ let state = {
       2: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
       3: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false }
     }
+  },
+
+  // Incident / Timeout Countdown Timer (突發事件 / 傷停計時)
+  incidentTimer: {
+    active: false,
+    running: false,
+    currentTime: 60,
+    duration: 60,
+    endTime: null,
+    title: "KYESHI (1 MIN)",
+    warned10s: false
   }
 };
 
@@ -387,6 +398,7 @@ function initScoreboard() {
     if (msg.type === "STATE_UPDATE") {
       updateScoreboardState(msg.state);
       renderDeviceTestDOM();
+      renderIncidentTimerDOM();
     } else if (msg.type === "JUDGE_HIT_INDICATOR") {
       flashJudgeIndicator(msg.judgeIndex, msg.color);
       if (msg.blueHistory) state.blueJudgeHistory = msg.blueHistory;
@@ -420,6 +432,7 @@ function initScoreboard() {
         if (serverState) {
           updateScoreboardState(serverState);
           renderDeviceTestDOM();
+          renderIncidentTimerDOM();
         }
       })
       .catch(e => {});
@@ -431,22 +444,40 @@ function initScoreboard() {
     window.addEventListener("keydown", handleScoreboardKeyboardInput);
   }
 
-  // Initial render for judge history placeholders and device test
+  // Initial render for judge history placeholders, device test, and incident timer
   renderJudgeHistoryDOM("blue");
   renderJudgeHistoryDOM("red");
   renderDeviceTestDOM();
+  renderIncidentTimerDOM();
 }
 
 function startScoreboardTimerLoop() {
   if (scoreboardTimerLoop) return;
   scoreboardTimerLoop = setInterval(() => {
-    if (!state.timerRunning || !localTimerEndTime) {
+    const matchActive = Boolean(state.timerRunning && localTimerEndTime);
+    const incidentActive = Boolean(state.incidentTimer && state.incidentTimer.running && state.incidentTimer.endTime);
+    
+    if (!matchActive && !incidentActive) {
       clearInterval(scoreboardTimerLoop);
       scoreboardTimerLoop = null;
       return;
     }
-    const remaining = Math.max(0, (localTimerEndTime - Date.now()) / 1000);
-    updateTimerDisplay(remaining);
+    
+    if (matchActive) {
+      const remaining = Math.max(0, (localTimerEndTime - Date.now()) / 1000);
+      updateTimerDisplay(remaining);
+    }
+    
+    if (incidentActive) {
+      const rem = Math.max(0, (state.incidentTimer.endTime - Date.now()) / 1000);
+      const timeEl = document.getElementById("sb-incident-time");
+      if (timeEl) {
+        timeEl.textContent = formatIncidentTime(rem);
+        timeEl.classList.toggle("warning-10s", rem <= 10 && rem > 0);
+      }
+      const cd = document.getElementById("ctrl-incident-countdown-display");
+      if (cd) cd.textContent = formatIncidentTime(rem);
+    }
   }, 30); // ~33fps for continuous, smooth tenth-of-a-second countdown
 }
 
@@ -465,19 +496,20 @@ function updateScoreboardState(newState) {
   const wasTimerRunning = Boolean(state.timerRunning);
   state = newState;
 
+  const incidentRunning = Boolean(state.incidentTimer && state.incidentTimer.running && state.incidentTimer.endTime);
+
   // Synchronize local countdown end time stably without latency jitter
   if (state.timerRunning && state.timerEndTime) {
-    // Only re-anchor local countdown end time if:
-    // 1. Timer was not previously running locally, OR
-    // 2. We don't have a localTimerEndTime yet, OR
-    // 3. Operator manually adjusted timer (+-10s = 10000ms >= 3000ms)
-    // Routine score broadcasts will NEVER touch localTimerEndTime or disrupt countdown!
     if (!localTimerEndTime || !wasTimerRunning || Math.abs(localTimerEndTime - state.timerEndTime) >= 3000) {
       localTimerEndTime = state.timerEndTime;
     }
-    startScoreboardTimerLoop();
   } else {
     localTimerEndTime = null;
+  }
+
+  if ((state.timerRunning && state.timerEndTime) || incidentRunning) {
+    startScoreboardTimerLoop();
+  } else {
     if (scoreboardTimerLoop) {
       clearInterval(scoreboardTimerLoop);
       scoreboardTimerLoop = null;
@@ -486,6 +518,7 @@ function updateScoreboardState(newState) {
 
   renderScoreboardDOM();
   renderDeviceTestDOM();
+  renderIncidentTimerDOM();
   
   // Pulse animation on score increment
   if (state.blueScore > oldScore.blue) {
@@ -584,6 +617,7 @@ function renderScoreboardDOM() {
   if (!state.timerRunning) {
     updateTimerDisplay(state.currentTime);
   }
+  renderIncidentTimerDOM();
 }
 
 function renderRoundHistoryDOM() {
@@ -857,6 +891,9 @@ function initControl() {
       } else if (e.key.toLowerCase() === "t" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("t")) {
         e.preventDefault();
         toggleDeviceTest();
+      } else if (e.key.toLowerCase() === "k" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("k")) {
+        e.preventDefault();
+        toggleIncidentTimerActive();
       } else {
         processKeyboardScoring(e.key);
       }
@@ -881,6 +918,9 @@ function initControl() {
 
   const devTestBtn = document.getElementById("btn-toggle-device-test");
   if (devTestBtn) devTestBtn.onclick = toggleDeviceTest;
+
+  const incidentBtn = document.getElementById("btn-toggle-incident-timer");
+  if (incidentBtn) incidentBtn.onclick = toggleIncidentTimerActive;
 
   // Manual Adjustments
   setupAdjustmentButtons();
@@ -1397,6 +1437,256 @@ window.resetDeviceTestState = resetDeviceTestState;
 window.finishDeviceTestAndStartMatch = finishDeviceTestAndStartMatch;
 window.returnToMatchReady = returnToMatchReady;
 window.simulateTestHit = simulateTestHit;
+
+// ==========================================================================
+// Incident / Timeout Countdown Timer (突發事件 / 傷停計時)
+// ==========================================================================
+let incidentInterval = null;
+
+function formatIncidentTime(totalSeconds) {
+  if (totalSeconds <= 0) return "0.0";
+  if (totalSeconds <= 10) return totalSeconds.toFixed(1);
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function toggleIncidentTimerActive() {
+  if (state.incidentTimer && state.incidentTimer.active) {
+    closeIncidentTimer();
+  } else {
+    openIncidentTimer();
+  }
+}
+
+function openIncidentTimer(duration = 60, title = "KYESHI (1 MIN)") {
+  if (!state.incidentTimer) {
+    state.incidentTimer = {};
+  }
+  // Pause main match timer automatically if running
+  if (state.timerRunning) {
+    toggleTimer();
+  }
+  state.incidentTimer.active = true;
+  state.incidentTimer.running = false;
+  state.incidentTimer.duration = duration;
+  state.incidentTimer.currentTime = duration;
+  state.incidentTimer.endTime = null;
+  state.incidentTimer.title = title;
+  state.incidentTimer.warned10s = false;
+  state.timestamp = Date.now();
+  
+  logEvent(`開啟突發事件計時 (${state.incidentTimer.title} ${formatIncidentTime(duration)})`);
+  renderIncidentTimerDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function closeIncidentTimer() {
+  if (state.incidentTimer) {
+    state.incidentTimer.active = false;
+    state.incidentTimer.running = false;
+    state.incidentTimer.endTime = null;
+  }
+  if (incidentInterval) {
+    clearInterval(incidentInterval);
+    incidentInterval = null;
+  }
+  state.timestamp = Date.now();
+  logEvent("關閉突發事件計時");
+  renderIncidentTimerDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function toggleIncidentTimer() {
+  if (!state.incidentTimer) return;
+  if (!state.incidentTimer.active) {
+    openIncidentTimer();
+    return;
+  }
+  if (state.incidentTimer.running) {
+    // Pause
+    state.incidentTimer.running = false;
+    if (incidentInterval) {
+      clearInterval(incidentInterval);
+      incidentInterval = null;
+    }
+    if (state.incidentTimer.endTime) {
+      state.incidentTimer.currentTime = Math.max(0, Math.round((state.incidentTimer.endTime - Date.now()) / 100) / 10);
+      state.incidentTimer.endTime = null;
+    }
+    state.timestamp = Date.now();
+    logEvent(`突發事件計時暫停 (${formatIncidentTime(state.incidentTimer.currentTime)})`);
+    renderIncidentTimerDOM();
+    renderControlDOM();
+    broadcastState();
+  } else {
+    // Start
+    initAudio();
+    if (state.timerRunning) {
+      toggleTimer();
+    }
+    state.incidentTimer.running = true;
+    state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+    if (state.incidentTimer.currentTime > 10) {
+      state.incidentTimer.warned10s = false;
+    }
+    state.timestamp = Date.now();
+    startControlIncidentTimer();
+    logEvent(`突發事件計時開始 (${state.incidentTimer.title})`);
+    renderIncidentTimerDOM();
+    renderControlDOM();
+    broadcastState();
+  }
+}
+
+function startControlIncidentTimer() {
+  if (incidentInterval) clearInterval(incidentInterval);
+  incidentInterval = setInterval(() => {
+    if (!state.incidentTimer || !state.incidentTimer.running || !state.incidentTimer.endTime) {
+      clearInterval(incidentInterval);
+      incidentInterval = null;
+      return;
+    }
+    const remainingMs = state.incidentTimer.endTime - Date.now();
+    if (remainingMs <= 30) {
+      state.incidentTimer.currentTime = 0;
+      state.incidentTimer.running = false;
+      state.incidentTimer.endTime = null;
+      state.timestamp = Date.now();
+      clearInterval(incidentInterval);
+      incidentInterval = null;
+      
+      broadcastSound("buzzer");
+      logEvent(`突發事件計時時間到！(${state.incidentTimer.title})`);
+      renderIncidentTimerDOM();
+      renderControlDOM();
+      broadcastState();
+    } else {
+      state.incidentTimer.currentTime = Math.max(0, Math.round(remainingMs / 100) / 10);
+      if (!state.incidentTimer.warned10s && remainingMs <= 10050 && remainingMs > 1000) {
+        state.incidentTimer.warned10s = true;
+        broadcastSound("whistle");
+        logEvent(`突發事件計時倒數 10 秒提示！`);
+      }
+      const cd = document.getElementById("ctrl-incident-countdown-display");
+      if (cd) cd.textContent = formatIncidentTime(state.incidentTimer.currentTime);
+    }
+  }, 50);
+}
+
+function setIncidentDuration(seconds) {
+  if (!state.incidentTimer) state.incidentTimer = { active: true };
+  state.incidentTimer.duration = seconds;
+  state.incidentTimer.currentTime = seconds;
+  state.incidentTimer.warned10s = false;
+  if (state.incidentTimer.running) {
+    state.incidentTimer.endTime = Date.now() + Math.round(seconds * 1000);
+  }
+  state.timestamp = Date.now();
+  logEvent(`突發計時設定為 ${formatIncidentTime(seconds)}`);
+  renderIncidentTimerDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function adjustIncidentTime(delta) {
+  if (!state.incidentTimer) return;
+  state.incidentTimer.currentTime = Math.max(0, state.incidentTimer.currentTime + delta);
+  if (state.incidentTimer.currentTime > 10) {
+    state.incidentTimer.warned10s = false;
+  }
+  if (state.incidentTimer.running) {
+    state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+  }
+  state.timestamp = Date.now();
+  renderIncidentTimerDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function resetIncidentTimer() {
+  if (!state.incidentTimer) return;
+  state.incidentTimer.running = false;
+  if (incidentInterval) {
+    clearInterval(incidentInterval);
+    incidentInterval = null;
+  }
+  state.incidentTimer.currentTime = state.incidentTimer.duration || 60;
+  state.incidentTimer.endTime = null;
+  state.incidentTimer.warned10s = false;
+  state.timestamp = Date.now();
+  logEvent(`重設突發事件計時為 ${formatIncidentTime(state.incidentTimer.currentTime)}`);
+  renderIncidentTimerDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function changeIncidentTitle(newTitle) {
+  if (!state.incidentTimer) return;
+  state.incidentTimer.title = newTitle;
+  state.timestamp = Date.now();
+  renderIncidentTimerDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function renderIncidentTimerDOM() {
+  const overlay = document.getElementById("sb-incident-overlay");
+  const ctrlBar = document.getElementById("ctrl-incident-timer-bar");
+  const toggleBtn = document.getElementById("btn-toggle-incident-timer");
+  
+  const isIncidentActive = Boolean(state.incidentTimer && state.incidentTimer.active);
+  
+  if (overlay) {
+    overlay.style.display = isIncidentActive ? "block" : "none";
+  }
+  if (ctrlBar) {
+    ctrlBar.style.display = isIncidentActive ? "flex" : "none";
+  }
+  if (toggleBtn) {
+    toggleBtn.classList.toggle("active", isIncidentActive);
+  }
+  
+  if (!isIncidentActive) return;
+  
+  const titleEl = document.getElementById("sb-incident-title");
+  if (titleEl) {
+    titleEl.textContent = state.incidentTimer.title || "TIMEOUT";
+  }
+  
+  const timeEl = document.getElementById("sb-incident-time");
+  if (timeEl && !state.incidentTimer.running) {
+    timeEl.textContent = formatIncidentTime(state.incidentTimer.currentTime);
+    timeEl.classList.toggle("warning-10s", state.incidentTimer.currentTime <= 10 && state.incidentTimer.currentTime > 0);
+  }
+  
+  const cdDisplay = document.getElementById("ctrl-incident-countdown-display");
+  if (cdDisplay) {
+    cdDisplay.textContent = formatIncidentTime(state.incidentTimer.currentTime);
+  }
+  
+  const playBtn = document.getElementById("btn-incident-toggle-play");
+  if (playBtn) {
+    playBtn.textContent = state.incidentTimer.running ? "PAUSE" : "START";
+    playBtn.className = state.incidentTimer.running ? "btn-secondary btn-sm" : "btn-primary btn-sm";
+  }
+  
+  const selectEl = document.getElementById("ctrl-incident-title-select");
+  if (selectEl && state.incidentTimer.title) {
+    selectEl.value = state.incidentTimer.title;
+  }
+}
+
+window.openIncidentTimer = openIncidentTimer;
+window.closeIncidentTimer = closeIncidentTimer;
+window.toggleIncidentTimer = toggleIncidentTimer;
+window.toggleIncidentTimerActive = toggleIncidentTimerActive;
+window.setIncidentDuration = setIncidentDuration;
+window.adjustIncidentTime = adjustIncidentTime;
+window.resetIncidentTimer = resetIncidentTimer;
+window.changeIncidentTitle = changeIncidentTitle;
 
 function updateSuperiorityLead() {
   // WT Competition Rules (Article 15 - Decision of Superiority):
@@ -2058,6 +2348,7 @@ function renderControlDOM() {
 
   // Render Sub-Round breakdown in Control Panel as well
   renderRoundHistoryDOM();
+  renderIncidentTimerDOM();
 }
 
 function setupAdjustmentButtons() {

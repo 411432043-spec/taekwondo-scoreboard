@@ -217,6 +217,7 @@
         </div>
         <div class="ctrl-timer-actions">
           <button id="btn-toggle-device-test" class="btn-secondary btn-dev-test" title="Shortcut: T key">TEST (T)</button>
+          <button id="btn-toggle-incident-timer" class="btn-secondary btn-incident-timer" title="快捷鍵: K 鍵 (突發事件 / 傷停倒數計時)">突發計時 (K)</button>
           <button id="btn-play-whistle" class="btn-secondary btn-whistle" title="快捷鍵: W 鍵 (倒數10秒自動響起，亦可手動播放)">
             <span>🎺</span> 哨音 (W)
           </button>
@@ -237,6 +238,37 @@
           <div class="ctrl-devtest-action-group">
             <button type="button" id="btn-ctrl-test-reset" class="btn-secondary btn-sm" onclick="resetDeviceTestState()">RESET KEYS</button>
             <button type="button" id="btn-ctrl-test-finish" class="btn-primary btn-sm btn-finish-test" onclick="finishDeviceTestAndStartMatch()">READY FOR MATCH (Space)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Incident / Timeout Control Bar (Active when incident timer is ON) -->
+      <section id="ctrl-incident-timer-bar" class="ctrl-incident-bar" style="display: none;">
+        <div class="ctrl-incident-header">
+          <div class="ctrl-incident-title-group">
+            <span class="ctrl-incident-tag">INCIDENT</span>
+            <select id="ctrl-incident-title-select" class="ctrl-incident-select" onchange="changeIncidentTitle(this.value)">
+              <option value="TIMEOUT">TIMEOUT (暫停)</option>
+              <option value="KYESHI (1 MIN)" selected>KYESHI (傷停 1分鐘)</option>
+              <option value="MEDICAL TIMEOUT">MEDICAL (醫療暫停)</option>
+              <option value="VIDEO REVIEW">VIDEO REVIEW (錄影審查)</option>
+              <option value="REFEREE CONSULT">REFEREE CONSULT (裁判研商)</option>
+            </select>
+          </div>
+          <div id="ctrl-incident-countdown-display" class="ctrl-incident-countdown">1:00</div>
+        </div>
+        <div class="ctrl-incident-controls">
+          <div class="ctrl-incident-presets">
+            <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(60)">1:00</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(30)">0:30</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(120)">2:00</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="adjustIncidentTime(10)">+10s</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="adjustIncidentTime(-10)">-10s</button>
+          </div>
+          <div class="ctrl-incident-actions">
+            <button type="button" id="btn-incident-toggle-play" class="btn-primary btn-sm" onclick="toggleIncidentTimer()">START</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="resetIncidentTimer()">RESET</button>
+            <button type="button" class="btn-secondary btn-sm" style="background-color: #ef4444;" onclick="closeIncidentTimer()">關閉計時 (Close)</button>
           </div>
         </div>
       </section>
@@ -666,6 +698,31 @@
           </div>
           <div class="station-footer">
             <div id="station-count-3" class="station-count-label">0 / 10 TESTED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Central Incident / Timeout Countdown Overlay (Floating Centered, Multi-Border, Non-Fullscreen) -->
+    <div id="sb-incident-overlay" class="sb-incident-overlay" style="display: none;">
+      <div class="sb-incident-frame-outer">
+        <div class="sb-incident-frame-inner">
+          <div class="sb-incident-corner top-left"></div>
+          <div class="sb-incident-corner top-right"></div>
+          <div class="sb-incident-corner bottom-left"></div>
+          <div class="sb-incident-corner bottom-right"></div>
+          
+          <div class="sb-incident-header">
+            <span class="sb-incident-badge">INCIDENT COUNTDOWN</span>
+            <div id="sb-incident-title" class="sb-incident-title">KYESHI (1 MIN)</div>
+          </div>
+          
+          <div class="sb-incident-timer-wrapper">
+            <div id="sb-incident-time" class="sb-incident-time">1:00</div>
+          </div>
+          
+          <div class="sb-incident-footer">
+            <div id="sb-incident-status" class="sb-incident-status">OFFICIAL TIMEOUT</div>
           </div>
         </div>
       </div>
