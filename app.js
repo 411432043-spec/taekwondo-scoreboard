@@ -1626,10 +1626,34 @@ function resetIncidentTimer() {
 function changeIncidentTitle(newTitle) {
   if (!state.incidentTimer) return;
   state.incidentTimer.title = newTitle;
+  // Automatically adjust default duration for KNOCKDOWN and YEOL (10s) vs KYESHI (60s)
+  if ((newTitle === "KNOCKDOWN" || newTitle === "YEOL") && state.incidentTimer.duration > 10) {
+    state.incidentTimer.duration = 10;
+    state.incidentTimer.currentTime = 10;
+    state.incidentTimer.warned10s = false;
+    if (state.incidentTimer.running) {
+      state.incidentTimer.endTime = Date.now() + 10000;
+    }
+  } else if (newTitle === "KYESHI" && state.incidentTimer.duration <= 10) {
+    state.incidentTimer.duration = 60;
+    state.incidentTimer.currentTime = 60;
+    state.incidentTimer.warned10s = false;
+    if (state.incidentTimer.running) {
+      state.incidentTimer.endTime = Date.now() + 60000;
+    }
+  }
   state.timestamp = Date.now();
   renderIncidentTimerDOM();
   renderControlDOM();
   broadcastState();
+}
+
+function triggerQuickIncident(title, seconds) {
+  if (!state.incidentTimer) {
+    state.incidentTimer = { active: true };
+  }
+  state.incidentTimer.title = title;
+  setIncidentDuration(seconds);
 }
 
 function renderIncidentTimerDOM() {
@@ -1687,6 +1711,7 @@ window.setIncidentDuration = setIncidentDuration;
 window.adjustIncidentTime = adjustIncidentTime;
 window.resetIncidentTimer = resetIncidentTimer;
 window.changeIncidentTitle = changeIncidentTitle;
+window.triggerQuickIncident = triggerQuickIncident;
 
 function updateSuperiorityLead() {
   // WT Competition Rules (Article 15 - Decision of Superiority):

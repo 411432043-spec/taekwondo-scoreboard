@@ -248,8 +248,10 @@
           <div class="ctrl-incident-title-group">
             <span class="ctrl-incident-tag">INCIDENT</span>
             <select id="ctrl-incident-title-select" class="ctrl-incident-select" onchange="changeIncidentTitle(this.value)">
-              <option value="TIMEOUT">TIMEOUT (暫停)</option>
               <option value="KYESHI" selected>KYESHI (傷停)</option>
+              <option value="KNOCKDOWN">KNOCKDOWN (擊倒讀秒)</option>
+              <option value="YEOL">YEOL (讀秒至十)</option>
+              <option value="TIMEOUT">TIMEOUT (暫停)</option>
               <option value="MEDICAL TIMEOUT">MEDICAL (醫療暫停)</option>
               <option value="VIDEO REVIEW">VIDEO REVIEW (錄影審查)</option>
               <option value="REFEREE CONSULT">REFEREE CONSULT (裁判研商)</option>
@@ -259,7 +261,9 @@
         </div>
         <div class="ctrl-incident-controls">
           <div class="ctrl-incident-presets">
-            <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(60)">1:00</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('KNOCKDOWN', 10)">KNOCKDOWN (10s)</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('YEOL', 10)">YEOL (10s)</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('KYESHI', 60)">KYESHI (1:00)</button>
             <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(30)">0:30</button>
             <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(120)">2:00</button>
             <button type="button" class="btn-secondary btn-sm" onclick="adjustIncidentTime(10)">+10s</button>
