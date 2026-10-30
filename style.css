@@ -212,10 +212,11 @@ body {
 /* Main Grid Layout */
 .sb-main-grid {
   display: grid;
-  grid-template-columns: 42.5% 15% 42.5%;
+  grid-template-columns: minmax(70px, 4.5vw) 1fr 15% 1fr minmax(70px, 4.5vw);
   height: 100vh;
-  width: 100%;
+  width: 100vw;
   overflow: hidden;
+  background-color: #000000;
 }
 
 /* Blue & Red Blocks */
@@ -328,125 +329,106 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2.5vw;
   flex-grow: 1;
   height: 58vh;
   position: relative;
 }
 
-/* Judge Scoring History Panel beside score */
-.sb-judge-history-panel {
+/* Extreme Left & Extreme Right Full Black Columns */
+.sb-side-column {
+  background-color: #000000;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.45);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 10px 14px;
-  min-width: 105px;
-  backdrop-filter: blur(6px);
-  will-change: contents;
-  transform: translateZ(0);
+  z-index: 5;
+  box-sizing: border-box;
+  padding: 1vh 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sb-judge-history-header {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  width: 100%;
-  margin-bottom: 8px;
-  text-align: center;
+.sb-side-column.right-side {
+  border-right: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sb-judge-history-header span {
-  font-family: var(--score-font);
-  font-size: 0.9vw;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 1px;
-}
-
-.sb-judge-history-rows {
+.sb-side-column .sb-judge-history-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
   width: 100%;
 }
 
-.sb-judge-history-row {
+.sb-side-column .sb-judge-history-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   justify-items: center;
-  padding: 2px 0;
-  transition: all 0.2s ease;
+  padding: 2px 4px;
 }
 
-.sb-judge-history-row:nth-child(1) { opacity: 1.0; }
-.sb-judge-history-row:nth-child(2) { opacity: 0.85; }
-.sb-judge-history-row:nth-child(3) { opacity: 0.70; }
-.sb-judge-history-row:nth-child(4) { opacity: 0.55; }
-.sb-judge-history-row:nth-child(5) { opacity: 0.40; }
+.sb-side-column .sb-judge-history-row:nth-child(1) { opacity: 1.0; }
+.sb-side-column .sb-judge-history-row:nth-child(2) { opacity: 0.85; }
+.sb-side-column .sb-judge-history-row:nth-child(3) { opacity: 0.70; }
+.sb-side-column .sb-judge-history-row:nth-child(4) { opacity: 0.55; }
+.sb-side-column .sb-judge-history-row:nth-child(5) { opacity: 0.40; }
+.sb-side-column .sb-judge-history-row:nth-child(6) { opacity: 0.30; }
 
-.sb-judge-dot {
-  width: 22px;
-  height: 22px;
+.sb-side-column .sb-judge-dot {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #1e293b;
-  border: 2px solid #334155;
+  background: #141417;
+  border: 1.5px solid #27272a;
   transition: all 0.15s ease;
   box-sizing: border-box;
 }
 
-.sb-judge-dot.empty {
-  opacity: 0.25;
+.sb-side-column .sb-judge-dot.empty {
+  opacity: 0.18;
 }
 
-.sb-judge-dot.inactive {
-  opacity: 0.45;
+.sb-side-column .sb-judge-dot.inactive {
+  opacity: 0.35;
 }
 
-.sb-judge-dot.blue-active {
+/* 1 pt punch: Blue for Blue side, Red for Red side */
+.sb-side-column .sb-judge-dot.blue-active {
   background: #3b82f6;
   border-color: #93c5fd;
-  box-shadow: 0 0 14px #3b82f6, inset 0 0 5px #ffffff;
+  box-shadow: 0 0 12px #3b82f6, inset 0 0 4px #ffffff;
   opacity: 1 !important;
 }
 
-.sb-judge-dot.red-active {
+.sb-side-column .sb-judge-dot.red-active {
   background: #ef4444;
   border-color: #fca5a5;
-  box-shadow: 0 0 14px #ef4444, inset 0 0 5px #ffffff;
+  box-shadow: 0 0 12px #ef4444, inset 0 0 4px #ffffff;
+  opacity: 1 !important;
+}
+
+/* 2+ pt kicks (2pt body, 3pt head, 4pt/5pt turning): Glowing Purple Light */
+.sb-side-column .sb-judge-dot.purple-active {
+  background: #a855f7;
+  border-color: #e9d5ff;
+  box-shadow: 0 0 14px #a855f7, 0 0 24px rgba(168, 85, 247, 0.7), inset 0 0 4px #ffffff;
   opacity: 1 !important;
 }
 
 @media (max-width: 900px) {
-  .sb-score-container {
-    gap: 1.5vw;
-  }
-  .sb-judge-history-panel {
-    padding: 6px 8px;
-    min-width: 75px;
-    border-radius: 8px;
-  }
-  .sb-judge-history-header {
+  .sb-side-column .sb-judge-history-rows {
     gap: 8px;
-    margin-bottom: 5px;
   }
-  .sb-judge-history-header span {
-    font-size: 0.75rem;
-  }
-  .sb-judge-history-rows {
+  .sb-side-column .sb-judge-history-row {
     gap: 5px;
   }
-  .sb-judge-history-row {
-    gap: 8px;
-  }
-  .sb-judge-dot {
-    width: 16px;
-    height: 16px;
+  .sb-side-column .sb-judge-dot {
+    width: 14px;
+    height: 14px;
   }
 }
 

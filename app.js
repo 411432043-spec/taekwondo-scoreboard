@@ -667,7 +667,7 @@ function flashJudgeIndicator(judgeIndex, color) {
   }, 400);
 }
 
-function recordJudgeHit(judgeIndex, color) {
+function recordJudgeHit(judgeIndex, color, points = 2) {
   if (!state.blueJudgeHistory) state.blueJudgeHistory = [];
   if (!state.redJudgeHistory) state.redJudgeHistory = [];
 
@@ -681,16 +681,21 @@ function recordJudgeHit(judgeIndex, color) {
     activeKick = {
       id: now,
       timestamp: now,
+      points: points,
       judges: { 1: false, 2: false, 3: false },
+      judgePoints: { 1: 0, 2: 0, 3: 0 },
       consensus: false
     };
     history.unshift(activeKick);
-    if (history.length > 5) {
+    if (history.length > 6) {
       history.pop();
     }
   }
 
   activeKick.judges[judgeIndex] = true;
+  if (!activeKick.judgePoints) activeKick.judgePoints = { 1: 0, 2: 0, 3: 0 };
+  activeKick.judgePoints[judgeIndex] = points;
+  activeKick.points = Math.max(activeKick.points || 0, points);
   activeKick.updatedAt = now;
 }
 
@@ -699,7 +704,7 @@ function renderJudgeHistoryDOM(color) {
   if (!container) return;
 
   const history = state[`${color}JudgeHistory`] || [];
-  const maxRows = 5;
+  const maxRows = 6;
   let html = "";
 
   for (let r = 0; r < maxRows; r++) {
@@ -711,17 +716,19 @@ function renderJudgeHistoryDOM(color) {
     const j2Active = kick && kick.judges && kick.judges[2];
     const j3Active = kick && kick.judges && kick.judges[3];
 
-    const getDotClass = (isActive) => {
-      if (isActive) return `${color}-active`;
-      if (isRowEmpty) return "empty";
-      return "inactive";
+    const getDotClass = (isActive, jIdx) => {
+      if (!isActive) return isRowEmpty ? "empty" : "inactive";
+      const pts = (kick.judgePoints && kick.judgePoints[jIdx]) || kick.points || 2;
+      // User requirement: 2分以上都用紫色的燈號 (If 2 points or more, use purple light)
+      if (pts >= 2) return "purple-active";
+      return `${color}-active`; // 1 point punch: blue for blue side, red for red side
     };
 
     html += `
       <div class="${rowClass}">
-        <div class="sb-judge-dot ${getDotClass(j1Active)}" title="J1"></div>
-        <div class="sb-judge-dot ${getDotClass(j2Active)}" title="J2"></div>
-        <div class="sb-judge-dot ${getDotClass(j3Active)}" title="J3"></div>
+        <div class="sb-judge-dot ${getDotClass(j1Active, 1)}"></div>
+        <div class="sb-judge-dot ${getDotClass(j2Active, 2)}"></div>
+        <div class="sb-judge-dot ${getDotClass(j3Active, 3)}"></div>
       </div>
     `;
   }
@@ -908,7 +915,7 @@ function processKeyboardScoring(key) {
 
 function processJudgeScoring(judgeIndex, color, points, deviceType = "Mobile") {
   // Record judge hit into kick history
-  recordJudgeHit(judgeIndex, color);
+  recordJudgeHit(judgeIndex, color, points);
 
   // Visual flash for judge hit indicator (local and broadcast to scoreboard)
   flashControlJudgeIndicator(judgeIndex, color);

@@ -407,6 +407,11 @@
     <!-- Main Scoring display grid -->
     <div class="sb-main-grid">
       
+      <!-- Far Left Solid Black Column: Blue Judge History -->
+      <aside class="sb-side-column left-side" id="sb-blue-side-column">
+        <div class="sb-judge-history-rows" id="sb-blue-history-rows"></div>
+      </aside>
+
       <!-- Blue Competitor block -->
       <section class="sb-player-block blue-side">
         <!-- Info Header -->
@@ -421,16 +426,8 @@
           </div>
         </div>
 
-        <!-- Giant Blue Score & Judge Record -->
-        <div class="sb-score-container blue-score-container">
-          <div id="sb-blue-judge-history" class="sb-judge-history-panel blue-history">
-            <div class="sb-judge-history-header">
-              <span>J1</span>
-              <span>J2</span>
-              <span>J3</span>
-            </div>
-            <div class="sb-judge-history-rows" id="sb-blue-history-rows"></div>
-          </div>
+        <!-- Giant Blue Score -->
+        <div class="sb-score-container">
           <div id="sb-blue-score" class="sb-score">0</div>
         </div>
 
@@ -506,17 +503,9 @@
           </div>
         </div>
 
-        <!-- Giant Red Score & Judge Record -->
-        <div class="sb-score-container red-score-container">
+        <!-- Giant Red Score -->
+        <div class="sb-score-container">
           <div id="sb-red-score" class="sb-score">0</div>
-          <div id="sb-red-judge-history" class="sb-judge-history-panel red-history">
-            <div class="sb-judge-history-header">
-              <span>J1</span>
-              <span>J2</span>
-              <span>J3</span>
-            </div>
-            <div class="sb-judge-history-rows" id="sb-red-history-rows"></div>
-          </div>
         </div>
 
         <!-- Round Score History (Shown during Rest) -->
@@ -554,6 +543,11 @@
           </div>
         </div>
       </section>
+
+      <!-- Far Right Solid Black Column: Red Judge History -->
+      <aside class="sb-side-column right-side" id="sb-red-side-column">
+        <div class="sb-judge-history-rows" id="sb-red-history-rows"></div>
+      </aside>
       
     </div>
 
