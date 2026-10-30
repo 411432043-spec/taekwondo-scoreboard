@@ -328,8 +328,126 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 2.5vw;
   flex-grow: 1;
   height: 58vh;
+  position: relative;
+}
+
+/* Judge Scoring History Panel beside score */
+.sb-judge-history-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 105px;
+  backdrop-filter: blur(6px);
+  will-change: contents;
+  transform: translateZ(0);
+}
+
+.sb-judge-history-header {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.sb-judge-history-header span {
+  font-family: var(--score-font);
+  font-size: 0.9vw;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+}
+
+.sb-judge-history-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.sb-judge-history-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: center;
+  justify-items: center;
+  padding: 2px 0;
+  transition: all 0.2s ease;
+}
+
+.sb-judge-history-row:nth-child(1) { opacity: 1.0; }
+.sb-judge-history-row:nth-child(2) { opacity: 0.85; }
+.sb-judge-history-row:nth-child(3) { opacity: 0.70; }
+.sb-judge-history-row:nth-child(4) { opacity: 0.55; }
+.sb-judge-history-row:nth-child(5) { opacity: 0.40; }
+
+.sb-judge-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 2px solid #334155;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sb-judge-dot.empty {
+  opacity: 0.25;
+}
+
+.sb-judge-dot.inactive {
+  opacity: 0.45;
+}
+
+.sb-judge-dot.blue-active {
+  background: #3b82f6;
+  border-color: #93c5fd;
+  box-shadow: 0 0 14px #3b82f6, inset 0 0 5px #ffffff;
+  opacity: 1 !important;
+}
+
+.sb-judge-dot.red-active {
+  background: #ef4444;
+  border-color: #fca5a5;
+  box-shadow: 0 0 14px #ef4444, inset 0 0 5px #ffffff;
+  opacity: 1 !important;
+}
+
+@media (max-width: 900px) {
+  .sb-score-container {
+    gap: 1.5vw;
+  }
+  .sb-judge-history-panel {
+    padding: 6px 8px;
+    min-width: 75px;
+    border-radius: 8px;
+  }
+  .sb-judge-history-header {
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .sb-judge-history-header span {
+    font-size: 0.75rem;
+  }
+  .sb-judge-history-rows {
+    gap: 5px;
+  }
+  .sb-judge-history-row {
+    gap: 8px;
+  }
+  .sb-judge-dot {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 /* Rest Mode Scoreboard Style */

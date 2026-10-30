@@ -39,6 +39,8 @@ let state = {
   timerRunning: false,
   timerEndTime: null,
   tenSecWarned: false,
+  blueJudgeHistory: [],
+  redJudgeHistory: [],
   timestamp: 0,
   
   roundScores: [
@@ -365,6 +367,10 @@ function initScoreboard() {
       updateScoreboardState(msg.state);
     } else if (msg.type === "JUDGE_HIT_INDICATOR") {
       flashJudgeIndicator(msg.judgeIndex, msg.color);
+      if (msg.blueHistory) state.blueJudgeHistory = msg.blueHistory;
+      if (msg.redHistory) state.redJudgeHistory = msg.redHistory;
+      renderJudgeHistoryDOM("blue");
+      renderJudgeHistoryDOM("red");
     } else if (msg.type === "PLAY_SOUND") {
       if (msg.sound === "point") playPointSound();
       if (msg.sound === "gamjeom") playGamjeomSound();
@@ -393,6 +399,10 @@ function initScoreboard() {
     window._scoreboardKeydownAttached = true;
     window.addEventListener("keydown", handleScoreboardKeyboardInput);
   }
+
+  // Initial render for judge history placeholders
+  renderJudgeHistoryDOM("blue");
+  renderJudgeHistoryDOM("red");
 }
 
 function startScoreboardTimerLoop() {
@@ -531,6 +541,10 @@ function renderScoreboardDOM() {
   // Render Sub-round scores (R1, R2, R3)
   renderRoundHistoryDOM();
 
+  // Render Judge Scoring History Panels (beside scores)
+  renderJudgeHistoryDOM("blue");
+  renderJudgeHistoryDOM("red");
+
   // Central Timer:
   // When timer is running, scoreboardTimerLoop has exclusive control over the smooth 33fps display.
   // We strictly avoid overwriting sb-timer-display on score updates to prevent countdown jitter!
@@ -651,6 +665,68 @@ function flashJudgeIndicator(judgeIndex, color) {
   setTimeout(() => {
     dot.classList.remove(`${color}-active`);
   }, 400);
+}
+
+function recordJudgeHit(judgeIndex, color) {
+  if (!state.blueJudgeHistory) state.blueJudgeHistory = [];
+  if (!state.redJudgeHistory) state.redJudgeHistory = [];
+
+  const now = Date.now();
+  const history = state[`${color}JudgeHistory`];
+  const windowMs = (state.consensusWindow || 1.0) * 1000;
+
+  let activeKick = history.length > 0 ? history[0] : null;
+  // If no kick or last kick was longer ago than the consensus window, start a new kick (該腳)
+  if (!activeKick || (now - activeKick.timestamp > windowMs)) {
+    activeKick = {
+      id: now,
+      timestamp: now,
+      judges: { 1: false, 2: false, 3: false },
+      consensus: false
+    };
+    history.unshift(activeKick);
+    if (history.length > 5) {
+      history.pop();
+    }
+  }
+
+  activeKick.judges[judgeIndex] = true;
+  activeKick.updatedAt = now;
+}
+
+function renderJudgeHistoryDOM(color) {
+  const container = document.getElementById(`sb-${color}-history-rows`);
+  if (!container) return;
+
+  const history = state[`${color}JudgeHistory`] || [];
+  const maxRows = 5;
+  let html = "";
+
+  for (let r = 0; r < maxRows; r++) {
+    const kick = history[r];
+    const isRowEmpty = !kick;
+    const rowClass = kick && kick.consensus ? "sb-judge-history-row has-consensus" : "sb-judge-history-row";
+
+    const j1Active = kick && kick.judges && kick.judges[1];
+    const j2Active = kick && kick.judges && kick.judges[2];
+    const j3Active = kick && kick.judges && kick.judges[3];
+
+    const getDotClass = (isActive) => {
+      if (isActive) return `${color}-active`;
+      if (isRowEmpty) return "empty";
+      return "inactive";
+    };
+
+    html += `
+      <div class="${rowClass}">
+        <div class="sb-judge-dot ${getDotClass(j1Active)}" title="J1"></div>
+        <div class="sb-judge-dot ${getDotClass(j2Active)}" title="J2"></div>
+        <div class="sb-judge-dot ${getDotClass(j3Active)}" title="J3"></div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
 }
 
 
@@ -831,9 +907,18 @@ function processKeyboardScoring(key) {
 }
 
 function processJudgeScoring(judgeIndex, color, points, deviceType = "Mobile") {
+  // Record judge hit into kick history
+  recordJudgeHit(judgeIndex, color);
+
   // Visual flash for judge hit indicator (local and broadcast to scoreboard)
   flashControlJudgeIndicator(judgeIndex, color);
-  channel.postMessage({ type: "JUDGE_HIT_INDICATOR", judgeIndex: judgeIndex, color: color });
+  channel.postMessage({ 
+    type: "JUDGE_HIT_INDICATOR", 
+    judgeIndex: judgeIndex, 
+    color: color,
+    blueHistory: state.blueJudgeHistory,
+    redHistory: state.redJudgeHistory
+  });
 
   logEvent(`Judge ${judgeIndex} pressed ${color.toUpperCase()} +${points}pt (${deviceType})`);
   
@@ -1037,6 +1122,11 @@ function checkConsensus(judgeIndex, color, points) {
   // Consensus reached if matching judges reach required threshold (default 1 for instant response)
   const requiredJudges = Math.max(1, state.minConsensusJudges !== undefined ? state.minConsensusJudges : 1);
   if (matchingJudges.length >= requiredJudges) {
+    // Mark current kick as reached consensus in judge history
+    if (state[`${color}JudgeHistory`] && state[`${color}JudgeHistory`].length > 0) {
+      state[`${color}JudgeHistory`][0].consensus = true;
+    }
+
     // Award score points and confirmed registered hit
     state[`${color}Score`] += points;
     state[`${color}Hits`]++;
@@ -1168,6 +1258,8 @@ function handlePeriodEnd() {
     state.currentRound++;
     state.currentTime = state.roundDuration;
     state.tenSecWarned = false;
+    state.blueJudgeHistory = [];
+    state.redJudgeHistory = [];
     
     // Reset round scores in Best of 3 mode
     if (state.scoringMode === "bestOf3") {
@@ -1366,6 +1458,8 @@ function resetMatchFully() {
     state.isRest = false;
     state.matchOver = false;
     state.tenSecWarned = false;
+    state.blueJudgeHistory = [];
+    state.redJudgeHistory = [];
     state.roundScores = [
       { blue: null, red: null, winner: null },
       { blue: null, red: null, winner: null },
@@ -1439,6 +1533,8 @@ function forceEndPeriod() {
     state.isRest = false;
     state.currentRound++;
     state.currentTime = state.roundDuration;
+    state.blueJudgeHistory = [];
+    state.redJudgeHistory = [];
     
     // Reset round scores in Best of 3 mode
     if (state.scoringMode === "bestOf3") {
