@@ -62,6 +62,19 @@ let state = {
     j2Red: "4",
     j3Blue: "5",
     j3Red: "6"
+  },
+
+  // Equipment Pre-Match Device Test Mode
+  autoDeviceTest: true,
+  deviceTest: {
+    active: false,
+    round: 1,
+    currentJudge: 1, // 1 (J1), 2 (J2), 3 (J3), 4 (All Ready)
+    results: {
+      1: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
+      2: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
+      3: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false }
+    }
   }
 };
 
@@ -158,6 +171,14 @@ function playPointSound() {
 function playGamjeomSound() {
   playTone(380, 'square', 0.1, 0);
   playTone(380, 'square', 0.1, 150);
+}
+
+// Equipment test completion fanfare
+function playCompletionChime() {
+  playTone(523.25, 'sine', 0.12, 0);   // C5
+  playTone(659.25, 'sine', 0.12, 100); // E5
+  playTone(783.99, 'sine', 0.14, 200); // G5
+  playTone(1046.50, 'sine', 0.25, 300);// C6
 }
 
 // End of round: loud electronic buzzer
@@ -365,17 +386,26 @@ function initScoreboard() {
     const msg = event.data;
     if (msg.type === "STATE_UPDATE") {
       updateScoreboardState(msg.state);
+      renderDeviceTestDOM();
     } else if (msg.type === "JUDGE_HIT_INDICATOR") {
       flashJudgeIndicator(msg.judgeIndex, msg.color);
       if (msg.blueHistory) state.blueJudgeHistory = msg.blueHistory;
       if (msg.redHistory) state.redJudgeHistory = msg.redHistory;
       renderJudgeHistoryDOM("blue");
       renderJudgeHistoryDOM("red");
+    } else if (msg.type === "DEVICE_TEST_HIT") {
+      if (msg.deviceTest) state.deviceTest = msg.deviceTest;
+      flashDeviceTestButton(msg.judgeIndex, msg.color, msg.points);
+      initAudio();
+      const freq = msg.color === 'blue' ? 659.25 : 784;
+      playTone(freq, 'sine', 0.12, 0);
+      renderDeviceTestDOM();
     } else if (msg.type === "PLAY_SOUND") {
       if (msg.sound === "point") playPointSound();
       if (msg.sound === "gamjeom") playGamjeomSound();
       if (msg.sound === "buzzer") playBuzzerSound();
       if (msg.sound === "whistle") playWhistleSound();
+      if (msg.sound === "completion") playCompletionChime();
     }
   };
 
@@ -389,6 +419,7 @@ function initScoreboard() {
       .then(serverState => {
         if (serverState) {
           updateScoreboardState(serverState);
+          renderDeviceTestDOM();
         }
       })
       .catch(e => {});
@@ -400,9 +431,10 @@ function initScoreboard() {
     window.addEventListener("keydown", handleScoreboardKeyboardInput);
   }
 
-  // Initial render for judge history placeholders
+  // Initial render for judge history placeholders and device test
   renderJudgeHistoryDOM("blue");
   renderJudgeHistoryDOM("red");
+  renderDeviceTestDOM();
 }
 
 function startScoreboardTimerLoop() {
@@ -453,6 +485,7 @@ function updateScoreboardState(newState) {
   }
 
   renderScoreboardDOM();
+  renderDeviceTestDOM();
   
   // Pulse animation on score increment
   if (state.blueScore > oldScore.blue) {
@@ -810,13 +843,20 @@ function initControl() {
       // Prevent default scroll behaviors for spacebar
       if (e.key === " ") {
         e.preventDefault();
-        toggleTimer();
+        if (state.deviceTest && state.deviceTest.active) {
+          finishDeviceTestAndStartMatch();
+        } else {
+          toggleTimer();
+        }
       } else if (e.key.toLowerCase() === "b" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("b")) {
         e.preventDefault();
         triggerManualBuzzer();
       } else if (e.key.toLowerCase() === "w" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("w")) {
         e.preventDefault();
         triggerManualWhistle();
+      } else if (e.key.toLowerCase() === "t" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("t")) {
+        e.preventDefault();
+        toggleDeviceTest();
       } else {
         processKeyboardScoring(e.key);
       }
@@ -839,11 +879,20 @@ function initControl() {
   const whistleBtn = document.getElementById("btn-play-whistle");
   if (whistleBtn) whistleBtn.onclick = triggerManualWhistle;
 
+  const devTestBtn = document.getElementById("btn-toggle-device-test");
+  if (devTestBtn) devTestBtn.onclick = toggleDeviceTest;
+
   // Manual Adjustments
   setupAdjustmentButtons();
 
   // Mobile scoring setup
   initMobileScoring();
+
+  // If auto device test is enabled and match is at round 1 start, begin device test
+  if (state.autoDeviceTest && !state.timerRunning && state.currentRound === 1 && state.currentTime === state.roundDuration) {
+    startDeviceTest(1);
+  }
+  renderDeviceTestDOM();
 }
 
 function broadcastState() {
@@ -915,6 +964,11 @@ function processKeyboardScoring(key) {
     triggerManualWhistle();
     return;
   }
+  // Handle manual device test toggle shortcut if not mapped to a judge
+  if (k === "t" && !Object.values(state.keys).map(v => v.toLowerCase()).includes("t")) {
+    toggleDeviceTest();
+    return;
+  }
   
   // Find matching configuration mapping
   let matched = false;
@@ -934,6 +988,11 @@ function processKeyboardScoring(key) {
 }
 
 function processJudgeScoring(judgeIndex, color, points, deviceType = "Mobile") {
+  // If in equipment device test mode, intercept hit for device test check
+  if (state.deviceTest && state.deviceTest.active) {
+    handleDeviceTestInput(judgeIndex, color, points, deviceType);
+    return;
+  }
   // Record judge hit into kick history
   recordJudgeHit(judgeIndex, color, points);
 
@@ -1040,6 +1099,328 @@ function flashControlJudgeIndicator(judgeIndex, color) {
     el.classList.remove(`${color}-active`);
   }, 350);
 }
+
+// ==========================================================================
+// Referee Equipment Device Test Mode (賽前 / 每局開始前 裁判設備測試)
+// ==========================================================================
+function handleDeviceTestInput(judgeIndex, color, points, deviceType = "Mobile") {
+  if (!state.deviceTest) {
+    state.deviceTest = {
+      active: true,
+      round: state.currentRound || 1,
+      currentJudge: 1,
+      results: {}
+    };
+  }
+  
+  if (!state.deviceTest.results[judgeIndex]) {
+    state.deviceTest.results[judgeIndex] = {
+      blue: { 1: false, 2: false, 3: false, 4: false, 5: false },
+      red: { 1: false, 2: false, 3: false, 4: false, 5: false },
+      completed: false
+    };
+  }
+
+  // Record verified button hit
+  state.deviceTest.results[judgeIndex][color][points] = true;
+
+  // Sound feedback for responsive button hit
+  initAudio();
+  const freq = color === 'blue' ? 659.25 : 784; // E5 for blue, G5 for red
+  playTone(freq, 'sine', 0.12, 0);
+
+  // Visual flash feedback on scoreboard and control panel
+  flashDeviceTestButton(judgeIndex, color, points);
+  flashControlJudgeIndicator(judgeIndex, color);
+
+  logEvent(`[設備測試] 第 ${judgeIndex} 副審 (J${judgeIndex}) 測試按鍵：${color === 'blue' ? '藍方' : '紅方'} +${points}分 (${deviceType})`);
+
+  // Check if judge has tested their buttons
+  const jResults = state.deviceTest.results[judgeIndex];
+  const blueTested = Object.values(jResults.blue).filter(Boolean).length;
+  const redTested = Object.values(jResults.red).filter(Boolean).length;
+  const totalTested = blueTested + redTested;
+
+  // Passed when: all 10 buttons tested, or keyboard tested both blue and red
+  if (totalTested >= 10 || (deviceType === "Keyboard" && blueTested >= 1 && redTested >= 1)) {
+    if (!jResults.completed) {
+      jResults.completed = true;
+      playCompletionChime();
+      logEvent(`[設備測試] ✓ 第 ${judgeIndex} 副審 (J${judgeIndex}) 設備檢測合格！`);
+    }
+  }
+
+  // Auto-advance sequentially from J1 -> J2 -> J3 -> ALL READY
+  if (state.deviceTest.currentJudge === judgeIndex && jResults.completed) {
+    if (state.deviceTest.currentJudge < 3) {
+      setTimeout(() => {
+        if (state.deviceTest && state.deviceTest.active && state.deviceTest.currentJudge === judgeIndex) {
+          setDeviceTestJudge(judgeIndex + 1);
+        }
+      }, 700);
+    } else if (state.deviceTest.currentJudge === 3) {
+      setTimeout(() => {
+        if (state.deviceTest && state.deviceTest.active && state.deviceTest.currentJudge === 3) {
+          setDeviceTestJudge(4); // All Ready
+        }
+      }, 700);
+    }
+  }
+
+  // Broadcast device test hit to all open windows/iframes
+  channel.postMessage({
+    type: "DEVICE_TEST_HIT",
+    judgeIndex: judgeIndex,
+    color: color,
+    points: points,
+    deviceTest: state.deviceTest
+  });
+
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function startDeviceTest(roundNum = null) {
+  if (!state.deviceTest) {
+    state.deviceTest = {};
+  }
+  state.deviceTest.active = true;
+  state.deviceTest.round = roundNum || state.currentRound || 1;
+  state.deviceTest.currentJudge = 1;
+  state.deviceTest.results = {
+    1: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
+    2: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
+    3: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false }
+  };
+  
+  logEvent(`進入第 ${state.deviceTest.round} 局裁判設備測試模式 (J1 TEST -> J3 TEST)`);
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function closeDeviceTest() {
+  if (state.deviceTest) {
+    state.deviceTest.active = false;
+  }
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function toggleDeviceTest() {
+  if (state.deviceTest && state.deviceTest.active) {
+    closeDeviceTest();
+  } else {
+    startDeviceTest(state.currentRound);
+  }
+}
+
+function setDeviceTestJudge(judgeNum) {
+  if (!state.deviceTest) return;
+  state.deviceTest.currentJudge = judgeNum;
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function stepDeviceTestJudge(delta) {
+  if (!state.deviceTest) return;
+  let next = (state.deviceTest.currentJudge || 1) + delta;
+  if (next < 1) next = 1;
+  if (next > 4) next = 4;
+  setDeviceTestJudge(next);
+}
+
+function resetDeviceTestState() {
+  if (!state.deviceTest) return;
+  state.deviceTest.currentJudge = 1;
+  state.deviceTest.results = {
+    1: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
+    2: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
+    3: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false }
+  };
+  logEvent("重設裁判設備測試按鍵紀錄");
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function finishDeviceTestAndStartMatch() {
+  if (state.deviceTest) {
+    state.deviceTest.active = false;
+  }
+  logEvent(`第 ${state.currentRound} 局設備測試完成，開始比賽！`);
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+  
+  // If timer not yet started, start timer
+  if (!state.timerRunning) {
+    toggleTimer();
+  }
+}
+
+function simulateTestHit(judgeIndex, color, points) {
+  handleDeviceTestInput(judgeIndex, color, points, "Touch/Click");
+}
+
+function flashDeviceTestButton(judgeIndex, color, points) {
+  const btn = document.getElementById(`devtest-btn-${judgeIndex}-${color}-${points}`);
+  if (!btn) return;
+  btn.classList.remove("hit-flash");
+  void btn.offsetWidth; // trigger reflow
+  btn.classList.add("hit-flash");
+  setTimeout(() => {
+    btn.classList.remove("hit-flash");
+  }, 400);
+}
+
+function renderDeviceTestDOM() {
+  const overlay = document.getElementById("sb-device-test-overlay");
+  const ctrlBar = document.getElementById("ctrl-device-test-bar");
+  const toggleBtn = document.getElementById("btn-toggle-device-test");
+  
+  const isTesting = Boolean(state.deviceTest && state.deviceTest.active);
+
+  if (overlay) {
+    overlay.style.display = isTesting ? "flex" : "none";
+  }
+  if (ctrlBar) {
+    ctrlBar.style.display = isTesting ? "flex" : "none";
+  }
+  if (toggleBtn) {
+    toggleBtn.classList.toggle("active", isTesting);
+  }
+
+  if (!isTesting) return;
+
+  const currentJudge = state.deviceTest.currentJudge || 1;
+  const roundNum = state.deviceTest.round || state.currentRound || 1;
+  const results = state.deviceTest.results || {};
+
+  // Update round badges & labels
+  const roundBadge = document.getElementById("devtest-round-badge");
+  if (roundBadge) {
+    roundBadge.textContent = `第 ${roundNum} 局 賽前設備檢測 (ROUND ${roundNum})`;
+  }
+  const ctrlFinishBtn = document.getElementById("btn-ctrl-test-finish");
+  if (ctrlFinishBtn) {
+    ctrlFinishBtn.textContent = `✅ 完成測試並開始第 ${roundNum} 局 (Space)`;
+  }
+  const ctrlStatusText = document.getElementById("ctrl-devtest-status-text");
+  if (ctrlStatusText) {
+    ctrlStatusText.textContent = currentJudge <= 3 
+      ? `當前目標：J${currentJudge} TEST 第 ${currentJudge} 副審`
+      : `🎉 全體裁判測試已完成！`;
+  }
+
+  // Update step pills
+  for (let j = 1; j <= 3; j++) {
+    const stepPill = document.getElementById(`devtest-step-${j}`);
+    const stepStatus = document.getElementById(`devtest-step-status-${j}`);
+    const ctrlStepBtn = document.getElementById(`btn-ctrl-test-j${j}`);
+    const jRes = results[j] || { completed: false };
+
+    if (stepPill) {
+      stepPill.classList.toggle("active", currentJudge === j);
+      stepPill.classList.toggle("passed", Boolean(jRes.completed));
+    }
+    if (stepStatus) {
+      if (jRes.completed) {
+        stepStatus.textContent = "✓ 檢測合格";
+      } else if (currentJudge === j) {
+        stepStatus.textContent = "⏳ 測試中";
+      } else {
+        stepStatus.textContent = "⚪ 待測試";
+      }
+    }
+    if (ctrlStepBtn) {
+      ctrlStepBtn.classList.toggle("active", currentJudge === j);
+      ctrlStepBtn.classList.toggle("passed", Boolean(jRes.completed));
+    }
+  }
+
+  // Guide banner text
+  const guideName = document.getElementById("devtest-current-judge-name");
+  if (guideName) {
+    if (currentJudge === 1) guideName.textContent = "第一副審 (Judge 1)";
+    else if (currentJudge === 2) guideName.textContent = "第二副審 (Judge 2)";
+    else if (currentJudge === 3) guideName.textContent = "第三副審 (Judge 3)";
+    else guideName.textContent = "全體裁判 (All Judges)";
+  }
+
+  // Render 3 stations
+  for (let j = 1; j <= 3; j++) {
+    const stationCard = document.getElementById(`devtest-station-${j}`);
+    const stationBadge = document.getElementById(`station-badge-${j}`);
+    const stationCount = document.getElementById(`station-count-${j}`);
+    const jRes = results[j] || { blue: {}, red: {}, completed: false };
+
+    let testedCount = 0;
+
+    // Render blue buttons 1..5
+    for (let pts = 1; pts <= 5; pts++) {
+      const isTested = Boolean(jRes.blue && jRes.blue[pts]);
+      if (isTested) testedCount++;
+      const btn = document.getElementById(`devtest-btn-${j}-blue-${pts}`);
+      if (btn) {
+        btn.classList.toggle("is-tested", isTested);
+        const st = btn.querySelector(".btn-status");
+        if (st) st.textContent = isTested ? "✓" : "○";
+      }
+    }
+
+    // Render red buttons 1..5
+    for (let pts = 1; pts <= 5; pts++) {
+      const isTested = Boolean(jRes.red && jRes.red[pts]);
+      if (isTested) testedCount++;
+      const btn = document.getElementById(`devtest-btn-${j}-red-${pts}`);
+      if (btn) {
+        btn.classList.toggle("is-tested", isTested);
+        const st = btn.querySelector(".btn-status");
+        if (st) st.textContent = isTested ? "✓" : "○";
+      }
+    }
+
+    if (stationCard) {
+      stationCard.classList.toggle("active-target", currentJudge === j);
+      stationCard.classList.toggle("passed", Boolean(jRes.completed));
+    }
+
+    if (stationBadge) {
+      if (jRes.completed) {
+        stationBadge.textContent = "✓ 檢測合格 PASSED";
+        stationBadge.className = "station-badge passed";
+      } else if (currentJudge === j) {
+        stationBadge.textContent = "⏳ 測試中 TESTING";
+        stationBadge.className = "station-badge in-progress";
+      } else {
+        stationBadge.textContent = "⚪ 待測試 WAITING";
+        stationBadge.className = "station-badge waiting";
+      }
+    }
+
+    if (stationCount) {
+      stationCount.textContent = `${testedCount} / 10 鍵已測試`;
+    }
+  }
+
+  // Check if all judges completed
+  const allCompleted = Boolean(results[1]?.completed && results[2]?.completed && results[3]?.completed) || currentJudge >= 4;
+  const completeBanner = document.getElementById("devtest-complete-banner");
+  if (completeBanner) {
+    completeBanner.style.display = allCompleted ? "flex" : "none";
+  }
+}
+
+// Expose functions globally for HTML onclick handlers
+window.setDeviceTestJudge = setDeviceTestJudge;
+window.stepDeviceTestJudge = stepDeviceTestJudge;
+window.resetDeviceTestState = resetDeviceTestState;
+window.finishDeviceTestAndStartMatch = finishDeviceTestAndStartMatch;
+window.simulateTestHit = simulateTestHit;
 
 function updateSuperiorityLead() {
   // WT Competition Rules (Article 15 - Decision of Superiority):
@@ -1306,6 +1687,9 @@ function handlePeriodEnd() {
     }
     
     logEvent(`Rest completed. Starting Round ${state.currentRound}`);
+    if (state.autoDeviceTest) {
+      startDeviceTest(state.currentRound);
+    }
   } else {
     // Round ended, transition to rest
     state.tenSecWarned = false;
@@ -1439,6 +1823,9 @@ function applySettings(e) {
   const lockoutEl = document.getElementById("cfg-lockout-time");
   if (lockoutEl) state.pointLockoutTime = parseFloat(lockoutEl.value) || 1.5;
   
+  const autoTestEl = document.getElementById("cfg-auto-device-test");
+  if (autoTestEl) state.autoDeviceTest = autoTestEl.checked;
+  
   // Custom Keyboard mappings
   state.keys.j1Blue = document.getElementById("cfg-key-j1b").value;
   state.keys.j1Red = document.getElementById("cfg-key-j1r").value;
@@ -1539,6 +1926,9 @@ function resetMatchFully() {
     };
     
     logEvent("Match fully reset.");
+    if (state.autoDeviceTest) {
+      startDeviceTest(1);
+    }
     renderControlDOM();
     broadcastState();
   }
@@ -1580,6 +1970,9 @@ function forceEndPeriod() {
       state.redSupLead = 0;
     }
     logEvent(`Skipped rest. Manually started Round ${state.currentRound}`);
+    if (state.autoDeviceTest) {
+      startDeviceTest(state.currentRound);
+    }
   } else {
     // Force end current round
     state.currentTime = 0;
@@ -1621,6 +2014,9 @@ function syncControlForm() {
   document.getElementById("cfg-key-j2r").value = state.keys.j2Red;
   document.getElementById("cfg-key-j3b").value = state.keys.j3Blue;
   document.getElementById("cfg-key-j3r").value = state.keys.j3Red;
+
+  const autoTestEl = document.getElementById("cfg-auto-device-test");
+  if (autoTestEl) autoTestEl.checked = state.autoDeviceTest !== false;
 }
 
 function renderControlDOM() {
