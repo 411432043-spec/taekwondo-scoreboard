@@ -210,7 +210,15 @@
           <button id="btn-timer-toggle" class="btn-primary btn-timer-play">START (Space)</button>
           <button id="btn-timer-minus10" class="btn-secondary">-10 秒</button>
         </div>
-        <button id="btn-next-round" class="btn-secondary" style="background-color: #7c3aed; color: #fff; width: 100%; max-width: 250px; font-weight: 700;">強制結束本局</button>
+        <div class="ctrl-timer-actions">
+          <button id="btn-play-whistle" class="btn-secondary btn-whistle" title="快捷鍵: W 鍵 (倒數10秒自動響起，亦可手動播放)">
+            <span>🎺</span> 哨音 (W)
+          </button>
+          <button id="btn-play-buzzer" class="btn-secondary btn-buzzer" title="快捷鍵: B 鍵 (時間結束自動響起，亦可手動播放)">
+            <span>📢</span> 蜂鳴 (B)
+          </button>
+          <button id="btn-next-round" class="btn-secondary btn-force-end">強制結束</button>
+        </div>
       </section>
 
       <!-- Sub-Round Score History Summary in Operator Panel -->

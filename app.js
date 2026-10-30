@@ -38,6 +38,7 @@ let state = {
   matchOver: false,
   timerRunning: false,
   timerEndTime: null,
+  tenSecWarned: false,
   timestamp: 0,
   
   roundScores: [
@@ -189,6 +190,68 @@ function playBuzzerSound() {
   }
 }
 
+// 10-second warning whistle: realistic dual-tone sports whistle with pea flutter
+function playWhistleSound() {
+  initAudio();
+  if (!audioCtx) return;
+  
+  try {
+    const now = audioCtx.currentTime;
+    const duration = 0.55; // 550ms crisp referee whistle blast
+    
+    // Master gain with quick envelope
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.setValueAtTime(0.001, now);
+    masterGain.gain.linearRampToValueAtTime(0.35, now + 0.04);
+    masterGain.gain.setValueAtTime(0.35, now + duration - 0.08);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    
+    // Bandpass filter centered around 2900Hz to shape resonant chamber acoustics
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2900, now);
+    filter.Q.setValueAtTime(3.0, now);
+    
+    // Dual high-frequency oscillators (generates ~300Hz acoustic beat frequency)
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    
+    // Attack pitch rise
+    osc1.frequency.setValueAtTime(2650, now);
+    osc1.frequency.exponentialRampToValueAtTime(2850, now + 0.06);
+    
+    osc2.frequency.setValueAtTime(2950, now);
+    osc2.frequency.exponentialRampToValueAtTime(3180, now + 0.06);
+    
+    // LFO to simulate pea vibration flutter inside whistle chamber (26Hz)
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.setValueAtTime(26, now);
+    lfoGain.gain.setValueAtTime(45, now);
+    
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfoGain.connect(osc2.frequency);
+    
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(masterGain);
+    masterGain.connect(audioCtx.destination);
+    
+    lfo.start(now);
+    osc1.start(now);
+    osc2.start(now);
+    
+    lfo.stop(now + duration);
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+  } catch (e) {
+    console.warn("Whistle playback failed:", e);
+  }
+}
+
 // ==========================================================================
 // Offline SVG Flags Database (Clean, scalable vectors)
 // ==========================================================================
@@ -306,6 +369,7 @@ function initScoreboard() {
       if (msg.sound === "point") playPointSound();
       if (msg.sound === "gamjeom") playGamjeomSound();
       if (msg.sound === "buzzer") playBuzzerSound();
+      if (msg.sound === "whistle") playWhistleSound();
     }
   };
 
@@ -325,7 +389,10 @@ function initScoreboard() {
   }, 1000);
 
   // Scoreboard key listener (allows forwarding keyboard hits if focused)
-  window.addEventListener("keydown", handleScoreboardKeyboardInput);
+  if (!window._scoreboardKeydownAttached) {
+    window._scoreboardKeydownAttached = true;
+    window.addEventListener("keydown", handleScoreboardKeyboardInput);
+  }
 }
 
 function startScoreboardTimerLoop() {
@@ -353,11 +420,17 @@ function updateScoreboardState(newState) {
   }
 
   const oldScore = { blue: state.blueScore, red: state.redScore };
+  const wasTimerRunning = Boolean(state.timerRunning);
   state = newState;
 
   // Synchronize local countdown end time stably without latency jitter
   if (state.timerRunning && state.timerEndTime) {
-    if (!localTimerEndTime || Math.abs(localTimerEndTime - state.timerEndTime) > 800) {
+    // Only re-anchor local countdown end time if:
+    // 1. Timer was not previously running locally, OR
+    // 2. We don't have a localTimerEndTime yet, OR
+    // 3. Operator manually adjusted timer (+-10s = 10000ms >= 3000ms)
+    // Routine score broadcasts will NEVER touch localTimerEndTime or disrupt countdown!
+    if (!localTimerEndTime || !wasTimerRunning || Math.abs(localTimerEndTime - state.timerEndTime) >= 3000) {
       localTimerEndTime = state.timerEndTime;
     }
     startScoreboardTimerLoop();
@@ -381,6 +454,7 @@ function updateScoreboardState(newState) {
 }
 
 function handleScoreboardKeyboardInput(e) {
+  if (e.repeat) return;
   // Simply forward the key to the control channel
   // If scoreboard is full screen on second display, keypresses will still score!
   channel.postMessage({ type: "KEY_PRESS", key: e.key });
@@ -457,11 +531,10 @@ function renderScoreboardDOM() {
   // Render Sub-round scores (R1, R2, R3)
   renderRoundHistoryDOM();
 
-  // Central Timer
-  if (state.timerRunning && localTimerEndTime) {
-    const remaining = Math.max(0, (localTimerEndTime - Date.now()) / 1000);
-    updateTimerDisplay(remaining);
-  } else {
+  // Central Timer:
+  // When timer is running, scoreboardTimerLoop has exclusive control over the smooth 33fps display.
+  // We strictly avoid overwriting sb-timer-display on score updates to prevent countdown jitter!
+  if (!state.timerRunning) {
     updateTimerDisplay(state.currentTime);
   }
 }
@@ -622,20 +695,30 @@ function initControl() {
   };
 
   // Keyboard listener for local keypresses
-  window.addEventListener("keydown", (e) => {
-    // If operator is typing in an input field, do not capture scoring shortcuts!
-    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "SELECT") {
-      return;
-    }
-    
-    // Prevent default scroll behaviors for spacebar
-    if (e.key === " ") {
-      e.preventDefault();
-      toggleTimer();
-    } else {
-      processKeyboardScoring(e.key);
-    }
-  });
+  if (!window._controlKeydownAttached) {
+    window._controlKeydownAttached = true;
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat) return;
+      // If operator is typing in an input field, do not capture scoring shortcuts!
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "SELECT") {
+        return;
+      }
+      
+      // Prevent default scroll behaviors for spacebar
+      if (e.key === " ") {
+        e.preventDefault();
+        toggleTimer();
+      } else if (e.key.toLowerCase() === "b" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("b")) {
+        e.preventDefault();
+        triggerManualBuzzer();
+      } else if (e.key.toLowerCase() === "w" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("w")) {
+        e.preventDefault();
+        triggerManualWhistle();
+      } else {
+        processKeyboardScoring(e.key);
+      }
+    });
+  }
 
   // Settings form change listeners
   document.getElementById("btn-apply-settings").onclick = applySettings;
@@ -646,6 +729,12 @@ function initControl() {
   document.getElementById("btn-timer-toggle").onclick = toggleTimer;
   document.getElementById("btn-timer-plus10").onclick = () => adjustTimer(10);
   document.getElementById("btn-timer-minus10").onclick = () => adjustTimer(-10);
+
+  const buzzerBtn = document.getElementById("btn-play-buzzer");
+  if (buzzerBtn) buzzerBtn.onclick = triggerManualBuzzer;
+
+  const whistleBtn = document.getElementById("btn-play-whistle");
+  if (whistleBtn) whistleBtn.onclick = triggerManualWhistle;
 
   // Manual Adjustments
   setupAdjustmentButtons();
@@ -675,6 +764,19 @@ function broadcastSound(soundName) {
   if (soundName === "point") playPointSound();
   if (soundName === "gamjeom") playGamjeomSound();
   if (soundName === "buzzer") playBuzzerSound();
+  if (soundName === "whistle") playWhistleSound();
+}
+
+function triggerManualBuzzer() {
+  initAudio();
+  broadcastSound("buzzer");
+  logEvent("手動播放計時結束蜂鳴聲 (Manual Buzzer)");
+}
+
+function triggerManualWhistle() {
+  initAudio();
+  broadcastSound("whistle");
+  logEvent("手動播放裁判哨音 (Manual Whistle)");
 }
 
 function logEvent(text) {
@@ -689,7 +791,7 @@ function logEvent(text) {
   // Color code some keywords
   if (text.includes("Consensus")) entry.classList.add("point");
   else if (text.includes("Gam-jeom") || text.includes("penalty")) entry.classList.add("gamjeom");
-  else if (text.includes("Timer") || text.includes("Round")) entry.classList.add("timer");
+  else if (text.includes("Timer") || text.includes("Round") || text.includes("蜂鳴聲") || text.includes("Buzzer") || text.includes("哨音") || text.includes("Whistle")) entry.classList.add("timer");
   
   entry.textContent = `[${timeStr}] ${text}`;
   logContainer.appendChild(entry);
@@ -699,6 +801,17 @@ function logEvent(text) {
 // Map keyboard shortcuts to Judge Actions
 function processKeyboardScoring(key) {
   const k = key.toLowerCase();
+  
+  // Handle manual buzzer shortcut if not mapped to a judge
+  if (k === "b" && !Object.values(state.keys).map(v => v.toLowerCase()).includes("b")) {
+    triggerManualBuzzer();
+    return;
+  }
+  // Handle manual whistle shortcut if not mapped to a judge
+  if (k === "w" && !Object.values(state.keys).map(v => v.toLowerCase()).includes("w")) {
+    triggerManualWhistle();
+    return;
+  }
   
   // Find matching configuration mapping
   let matched = false;
@@ -983,6 +1096,9 @@ function toggleTimer() {
     initAudio(); // Warm up audio context
     state.timerRunning = true;
     state.timerEndTime = Date.now() + Math.round(state.currentTime * 1000);
+    if (state.currentTime > 10) {
+      state.tenSecWarned = false;
+    }
     state.timestamp = Date.now();
     
     startControlTimer();
@@ -1020,6 +1136,14 @@ function startControlTimer() {
       broadcastState();
     } else {
       state.currentTime = Math.max(0, Math.round(remainingMs / 100) / 10);
+      
+      // 10-second warning whistle for Match period (not Rest)
+      if (!state.isRest && !state.tenSecWarned && remainingMs <= 10050 && remainingMs > 1000) {
+        state.tenSecWarned = true;
+        broadcastSound("whistle");
+        logEvent("Match 倒數最後 10 秒哨音提示 (10s Whistle Warning)");
+      }
+
       const timerElem = document.getElementById("ctrl-timer-time");
       if (timerElem) timerElem.textContent = formatTime(state.currentTime);
       
@@ -1043,6 +1167,7 @@ function handlePeriodEnd() {
     state.isRest = false;
     state.currentRound++;
     state.currentTime = state.roundDuration;
+    state.tenSecWarned = false;
     
     // Reset round scores in Best of 3 mode
     if (state.scoringMode === "bestOf3") {
@@ -1063,6 +1188,7 @@ function handlePeriodEnd() {
     logEvent(`Rest completed. Starting Round ${state.currentRound}`);
   } else {
     // Round ended, transition to rest
+    state.tenSecWarned = false;
     logEvent(`Round ${state.currentRound} finished.`);
     
     // Decide winner automatically if bestOf3 mode
@@ -1159,6 +1285,9 @@ function adjustTimer(secs) {
   if (state.timerRunning && state.timerEndTime) {
     state.timerEndTime += secs * 1000;
   }
+  if (state.currentTime > 10) {
+    state.tenSecWarned = false;
+  }
   state.timestamp = Date.now();
   logEvent(`Timer adjusted by ${secs}s. New time: ${formatTime(state.currentTime)}`);
   renderControlDOM();
@@ -1202,6 +1331,9 @@ function applySettings(e) {
   if (!state.timerRunning && !state.isRest) {
     state.currentTime = state.roundDuration;
   }
+  if (state.currentTime > 10) {
+    state.tenSecWarned = false;
+  }
   state.timestamp = Date.now();
 
   logEvent("Settings applied and synced.");
@@ -1233,6 +1365,7 @@ function resetMatchFully() {
     state.currentTime = state.roundDuration;
     state.isRest = false;
     state.matchOver = false;
+    state.tenSecWarned = false;
     state.roundScores = [
       { blue: null, red: null, winner: null },
       { blue: null, red: null, winner: null },
@@ -1298,6 +1431,7 @@ function forceEndPeriod() {
     }
   }
   state.timerEndTime = null;
+  state.tenSecWarned = false;
   state.timestamp = Date.now();
   
   if (state.isRest) {
@@ -1370,7 +1504,12 @@ function renderControlDOM() {
   document.getElementById("ctrl-match-badge").textContent = state.matchId 
     ? `${state.matchId} - R${state.currentRound} ${state.isRest ? 'REST' : 'MATCH'}`
     : `R${state.currentRound} ${state.isRest ? 'REST' : 'MATCH'}`;
-  document.getElementById("ctrl-timer-time").textContent = formatTime(state.currentTime);
+  // Only update control timer text if timer is NOT currently running.
+  // When running, startControlTimer handles smooth updates without stale time overwrite.
+  if (!state.timerRunning) {
+    const timerElem = document.getElementById("ctrl-timer-time");
+    if (timerElem) timerElem.textContent = formatTime(state.currentTime);
+  }
   
   // Active Timer Play Button Label
   const toggleBtn = document.getElementById("btn-timer-toggle");

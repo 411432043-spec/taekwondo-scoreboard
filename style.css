@@ -399,7 +399,8 @@ body {
   color: #ffffff;
   line-height: 1;
   text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  transition: transform 0.1s ease;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* Score change animation pulse */
@@ -559,6 +560,8 @@ body {
   justify-content: center;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
   position: relative;
+  will-change: contents;
+  transform: translateZ(0);
 }
 
 .sb-timer-box.active {
@@ -578,6 +581,8 @@ body {
   letter-spacing: -2px;
   transition: color 0.3s ease;
   font-variant-numeric: tabular-nums;
+  will-change: contents;
+  transform: translateZ(0);
 }
 
 .sb-timer-box.active .sb-timer-display {
@@ -814,6 +819,79 @@ input:focus, select:focus {
 }
 .btn-timer-play.timer-running:hover {
   background-color: #dc2626;
+}
+
+.ctrl-timer-actions {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 480px;
+  justify-content: center;
+}
+
+.btn-whistle {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+}
+
+.btn-whistle:hover {
+  background-color: #0369a1;
+  transform: translateY(-1px);
+}
+
+.btn-whistle:active {
+  transform: translateY(1px);
+  background-color: #075985;
+}
+
+.btn-buzzer {
+  background-color: #ea580c;
+  color: #ffffff;
+  font-weight: 700;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+}
+
+.btn-buzzer:hover {
+  background-color: #c2410c;
+  transform: translateY(-1px);
+}
+
+.btn-buzzer:active {
+  transform: translateY(1px);
+  background-color: #9a3412;
+}
+
+.btn-force-end {
+  background-color: #7c3aed;
+  color: #ffffff;
+  font-weight: 700;
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+}
+
+.btn-force-end:hover {
+  background-color: #6d28d9;
 }
 
 /* Competitor Manual Adjustment Cards */
