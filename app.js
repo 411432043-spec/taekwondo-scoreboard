@@ -77,14 +77,17 @@ let state = {
     }
   },
 
-  // Incident / Timeout Countdown Timer (突發事件 / 傷停計時)
+  // Incident / Knockdown Timer
   incidentTimer: {
     active: false,
     running: false,
-    currentTime: 60,
-    duration: 60,
+    currentTime: 0.0,
+    duration: 10.0,
+    startTime: null,
     endTime: null,
-    title: "KYESHI",
+    title: "KNOCKDOWN",
+    countUp: true,
+    warned8s: false,
     warned10s: false
   }
 };
@@ -455,7 +458,7 @@ function startScoreboardTimerLoop() {
   if (scoreboardTimerLoop) return;
   scoreboardTimerLoop = setInterval(() => {
     const matchActive = Boolean(state.timerRunning && localTimerEndTime);
-    const incidentActive = Boolean(state.incidentTimer && state.incidentTimer.running && state.incidentTimer.endTime);
+    const incidentActive = Boolean(state.incidentTimer && state.incidentTimer.running && (state.incidentTimer.startTime || state.incidentTimer.endTime));
     
     if (!matchActive && !incidentActive) {
       clearInterval(scoreboardTimerLoop);
@@ -469,14 +472,28 @@ function startScoreboardTimerLoop() {
     }
     
     if (incidentActive) {
-      const rem = Math.max(0, (state.incidentTimer.endTime - Date.now()) / 1000);
-      const timeEl = document.getElementById("sb-incident-time");
-      if (timeEl) {
-        timeEl.textContent = formatIncidentTime(rem);
-        timeEl.classList.toggle("warning-10s", rem <= 10 && rem > 0);
+      if (state.incidentTimer.countUp && state.incidentTimer.startTime) {
+        const elapsed = Math.min(10.0, (Date.now() - state.incidentTimer.startTime) / 1000);
+        const timeEl = document.getElementById("sb-incident-time");
+        if (timeEl) {
+          timeEl.textContent = formatIncidentTime(elapsed, true);
+          timeEl.classList.toggle("at-8s", elapsed >= 8.0 && elapsed < 10.0);
+          timeEl.classList.toggle("at-10s", elapsed >= 10.0);
+          timeEl.classList.remove("warning-10s");
+        }
+        const cd = document.getElementById("ctrl-incident-countdown-display");
+        if (cd) cd.textContent = formatIncidentTime(elapsed, true);
+      } else if (state.incidentTimer.endTime) {
+        const rem = Math.max(0, (state.incidentTimer.endTime - Date.now()) / 1000);
+        const timeEl = document.getElementById("sb-incident-time");
+        if (timeEl) {
+          timeEl.textContent = formatIncidentTime(rem, false);
+          timeEl.classList.toggle("warning-10s", rem <= 10 && rem > 0);
+          timeEl.classList.remove("at-8s", "at-10s");
+        }
+        const cd = document.getElementById("ctrl-incident-countdown-display");
+        if (cd) cd.textContent = formatIncidentTime(rem, false);
       }
-      const cd = document.getElementById("ctrl-incident-countdown-display");
-      if (cd) cd.textContent = formatIncidentTime(rem);
     }
   }, 30); // ~33fps for continuous, smooth tenth-of-a-second countdown
 }
@@ -496,7 +513,7 @@ function updateScoreboardState(newState) {
   const wasTimerRunning = Boolean(state.timerRunning);
   state = newState;
 
-  const incidentRunning = Boolean(state.incidentTimer && state.incidentTimer.running && state.incidentTimer.endTime);
+  const incidentRunning = Boolean(state.incidentTimer && state.incidentTimer.running && (state.incidentTimer.startTime || state.incidentTimer.endTime));
 
   // Synchronize local countdown end time stably without latency jitter
   if (state.timerRunning && state.timerEndTime) {
@@ -839,6 +856,17 @@ function initControl() {
       state = JSON.parse(stored);
       state.timerRunning = false;
       state.timerEndTime = null;
+      if (state.incidentTimer) {
+        state.incidentTimer.running = false;
+        state.incidentTimer.startTime = null;
+        state.incidentTimer.endTime = null;
+        if (!state.incidentTimer.title || state.incidentTimer.title === "KYESHI" || state.incidentTimer.title === "YEOL") {
+          state.incidentTimer.title = "KNOCKDOWN";
+          state.incidentTimer.countUp = true;
+          state.incidentTimer.currentTime = 0.0;
+          state.incidentTimer.duration = 10.0;
+        }
+      }
       if (state.blueName === "Jim") state.blueName = "";
       if (state.redName === "Jack") state.redName = "";
       if (state.blueTeam === "Washington") state.blueTeam = "";
@@ -1443,7 +1471,11 @@ window.simulateTestHit = simulateTestHit;
 // ==========================================================================
 let incidentInterval = null;
 
-function formatIncidentTime(totalSeconds) {
+function formatIncidentTime(totalSeconds, isCountUp = (state.incidentTimer && state.incidentTimer.countUp)) {
+  if (isCountUp) {
+    if (totalSeconds <= 0) return "0.0";
+    return Math.max(0, totalSeconds).toFixed(1);
+  }
   if (totalSeconds <= 0) return "0.0";
   if (totalSeconds <= 10) return totalSeconds.toFixed(1);
   const m = Math.floor(totalSeconds / 60);
@@ -1459,7 +1491,7 @@ function toggleIncidentTimerActive() {
   }
 }
 
-function openIncidentTimer(duration = 60, title = "KYESHI") {
+function openIncidentTimer(duration = 10, title = "KNOCKDOWN") {
   if (!state.incidentTimer) {
     state.incidentTimer = {};
   }
@@ -1467,16 +1499,20 @@ function openIncidentTimer(duration = 60, title = "KYESHI") {
   if (state.timerRunning) {
     toggleTimer();
   }
+  const isCountUp = (title === "KNOCKDOWN");
   state.incidentTimer.active = true;
   state.incidentTimer.running = false;
+  state.incidentTimer.countUp = isCountUp;
   state.incidentTimer.duration = duration;
-  state.incidentTimer.currentTime = duration;
+  state.incidentTimer.currentTime = isCountUp ? 0.0 : duration;
+  state.incidentTimer.startTime = null;
   state.incidentTimer.endTime = null;
   state.incidentTimer.title = title;
+  state.incidentTimer.warned8s = false;
   state.incidentTimer.warned10s = false;
   state.timestamp = Date.now();
   
-  logEvent(`開啟突發事件計時 (${state.incidentTimer.title} ${formatIncidentTime(duration)})`);
+  logEvent(`開啟突發事件計時 (${state.incidentTimer.title} ${formatIncidentTime(state.incidentTimer.currentTime, isCountUp)})`);
   renderIncidentTimerDOM();
   renderControlDOM();
   broadcastState();
@@ -1486,6 +1522,7 @@ function closeIncidentTimer() {
   if (state.incidentTimer) {
     state.incidentTimer.active = false;
     state.incidentTimer.running = false;
+    state.incidentTimer.startTime = null;
     state.incidentTimer.endTime = null;
   }
   if (incidentInterval) {
@@ -1505,6 +1542,7 @@ function toggleIncidentTimer() {
     openIncidentTimer();
     return;
   }
+  const isCountUp = Boolean(state.incidentTimer.countUp);
   if (state.incidentTimer.running) {
     // Pause
     state.incidentTimer.running = false;
@@ -1512,12 +1550,19 @@ function toggleIncidentTimer() {
       clearInterval(incidentInterval);
       incidentInterval = null;
     }
-    if (state.incidentTimer.endTime) {
-      state.incidentTimer.currentTime = Math.max(0, Math.round((state.incidentTimer.endTime - Date.now()) / 100) / 10);
-      state.incidentTimer.endTime = null;
+    if (isCountUp) {
+      if (state.incidentTimer.startTime) {
+        state.incidentTimer.currentTime = Math.min(10.0, Math.round((Date.now() - state.incidentTimer.startTime) / 100) / 10);
+        state.incidentTimer.startTime = null;
+      }
+    } else {
+      if (state.incidentTimer.endTime) {
+        state.incidentTimer.currentTime = Math.max(0, Math.round((state.incidentTimer.endTime - Date.now()) / 100) / 10);
+        state.incidentTimer.endTime = null;
+      }
     }
     state.timestamp = Date.now();
-    logEvent(`突發事件計時暫停 (${formatIncidentTime(state.incidentTimer.currentTime)})`);
+    logEvent(`突發事件計時暫停 (${formatIncidentTime(state.incidentTimer.currentTime, isCountUp)})`);
     renderIncidentTimerDOM();
     renderControlDOM();
     broadcastState();
@@ -1528,9 +1573,18 @@ function toggleIncidentTimer() {
       toggleTimer();
     }
     state.incidentTimer.running = true;
-    state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
-    if (state.incidentTimer.currentTime > 10) {
-      state.incidentTimer.warned10s = false;
+    if (isCountUp) {
+      state.incidentTimer.startTime = Date.now() - Math.round(state.incidentTimer.currentTime * 1000);
+      state.incidentTimer.endTime = null;
+      if (state.incidentTimer.currentTime < 8.0) {
+        state.incidentTimer.warned8s = false;
+      }
+    } else {
+      state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+      state.incidentTimer.startTime = null;
+      if (state.incidentTimer.currentTime > 10) {
+        state.incidentTimer.warned10s = false;
+      }
     }
     state.timestamp = Date.now();
     startControlIncidentTimer();
@@ -1544,48 +1598,104 @@ function toggleIncidentTimer() {
 function startControlIncidentTimer() {
   if (incidentInterval) clearInterval(incidentInterval);
   incidentInterval = setInterval(() => {
-    if (!state.incidentTimer || !state.incidentTimer.running || !state.incidentTimer.endTime) {
+    if (!state.incidentTimer || !state.incidentTimer.running) {
       clearInterval(incidentInterval);
       incidentInterval = null;
       return;
     }
-    const remainingMs = state.incidentTimer.endTime - Date.now();
-    if (remainingMs <= 30) {
-      state.incidentTimer.currentTime = 0;
-      state.incidentTimer.running = false;
-      state.incidentTimer.endTime = null;
-      state.timestamp = Date.now();
-      clearInterval(incidentInterval);
-      incidentInterval = null;
-      
-      broadcastSound("buzzer");
-      logEvent(`突發事件計時時間到！(${state.incidentTimer.title})`);
-      renderIncidentTimerDOM();
-      renderControlDOM();
-      broadcastState();
-    } else {
-      state.incidentTimer.currentTime = Math.max(0, Math.round(remainingMs / 100) / 10);
-      if (!state.incidentTimer.warned10s && remainingMs <= 10050 && remainingMs > 1000) {
-        state.incidentTimer.warned10s = true;
-        broadcastSound("whistle");
-        logEvent(`突發事件計時倒數 10 秒提示！`);
+
+    if (state.incidentTimer.countUp) {
+      // KNOCKDOWN count-up from 0.0 to 10.0
+      if (!state.incidentTimer.startTime) {
+        clearInterval(incidentInterval);
+        incidentInterval = null;
+        return;
       }
+      const elapsedMs = Date.now() - state.incidentTimer.startTime;
+      const elapsedSec = Math.min(10.0, elapsedMs / 1000);
+      state.incidentTimer.currentTime = Math.round(elapsedSec * 10) / 10;
+
+      // 8秒時響哨音提醒主審 (WT Knockdown 8s Whistle Alert)
+      if (elapsedMs >= 8000 && !state.incidentTimer.warned8s) {
+        state.incidentTimer.warned8s = true;
+        broadcastSound("whistle");
+        logEvent("[KNOCKDOWN] 8秒讀秒提示哨音 (Remind Center Referee: Yeodeol)");
+      }
+
+      // 10秒汽笛 (Knockdown 10s Buzzer / Horn, stop count)
+      if (elapsedMs >= 10000) {
+        state.incidentTimer.currentTime = 10.0;
+        state.incidentTimer.running = false;
+        state.incidentTimer.startTime = null;
+        state.incidentTimer.endTime = null;
+        state.timestamp = Date.now();
+        clearInterval(incidentInterval);
+        incidentInterval = null;
+
+        broadcastSound("buzzer");
+        logEvent("[KNOCKDOWN] 10秒讀秒結束汽笛響起 (Knockdown 10s Horn Reached)");
+        renderIncidentTimerDOM();
+        renderControlDOM();
+        broadcastState();
+        return;
+      }
+
       const cd = document.getElementById("ctrl-incident-countdown-display");
-      if (cd) cd.textContent = formatIncidentTime(state.incidentTimer.currentTime);
+      if (cd) cd.textContent = formatIncidentTime(state.incidentTimer.currentTime, true);
+    } else {
+      // Countdown mode (Other timeouts)
+      if (!state.incidentTimer.endTime) {
+        clearInterval(incidentInterval);
+        incidentInterval = null;
+        return;
+      }
+      const remainingMs = state.incidentTimer.endTime - Date.now();
+      if (remainingMs <= 30) {
+        state.incidentTimer.currentTime = 0;
+        state.incidentTimer.running = false;
+        state.incidentTimer.startTime = null;
+        state.incidentTimer.endTime = null;
+        state.timestamp = Date.now();
+        clearInterval(incidentInterval);
+        incidentInterval = null;
+        
+        broadcastSound("buzzer");
+        logEvent(`突發事件計時時間到！(${state.incidentTimer.title})`);
+        renderIncidentTimerDOM();
+        renderControlDOM();
+        broadcastState();
+      } else {
+        state.incidentTimer.currentTime = Math.max(0, Math.round(remainingMs / 100) / 10);
+        if (!state.incidentTimer.warned10s && remainingMs <= 10050 && remainingMs > 1000) {
+          state.incidentTimer.warned10s = true;
+          broadcastSound("whistle");
+          logEvent(`突發事件計時倒數 10 秒提示！`);
+        }
+        const cd = document.getElementById("ctrl-incident-countdown-display");
+        if (cd) cd.textContent = formatIncidentTime(state.incidentTimer.currentTime, false);
+      }
     }
   }, 50);
 }
 
 function setIncidentDuration(seconds) {
   if (!state.incidentTimer) state.incidentTimer = { active: true };
+  const isCountUp = Boolean(state.incidentTimer.countUp);
   state.incidentTimer.duration = seconds;
-  state.incidentTimer.currentTime = seconds;
+  state.incidentTimer.currentTime = isCountUp ? 0.0 : seconds;
+  state.incidentTimer.warned8s = false;
   state.incidentTimer.warned10s = false;
   if (state.incidentTimer.running) {
-    state.incidentTimer.endTime = Date.now() + Math.round(seconds * 1000);
+    if (isCountUp) {
+      state.incidentTimer.startTime = Date.now();
+      state.incidentTimer.endTime = null;
+    } else {
+      state.incidentTimer.endTime = Date.now() + Math.round(seconds * 1000);
+      state.incidentTimer.startTime = null;
+    }
   }
   state.timestamp = Date.now();
-  logEvent(`突發計時設定為 ${formatIncidentTime(seconds)}`);
+  logEvent(`突發計時設定為 ${formatIncidentTime(state.incidentTimer.currentTime, isCountUp)}`);
   renderIncidentTimerDOM();
   renderControlDOM();
   broadcastState();
@@ -1593,12 +1703,23 @@ function setIncidentDuration(seconds) {
 
 function adjustIncidentTime(delta) {
   if (!state.incidentTimer) return;
-  state.incidentTimer.currentTime = Math.max(0, state.incidentTimer.currentTime + delta);
-  if (state.incidentTimer.currentTime > 10) {
-    state.incidentTimer.warned10s = false;
-  }
-  if (state.incidentTimer.running) {
-    state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+  const isCountUp = Boolean(state.incidentTimer.countUp);
+  if (isCountUp) {
+    state.incidentTimer.currentTime = Math.max(0, Math.min(10.0, Math.round((state.incidentTimer.currentTime + delta) * 10) / 10));
+    if (state.incidentTimer.currentTime < 8.0) {
+      state.incidentTimer.warned8s = false;
+    }
+    if (state.incidentTimer.running) {
+      state.incidentTimer.startTime = Date.now() - Math.round(state.incidentTimer.currentTime * 1000);
+    }
+  } else {
+    state.incidentTimer.currentTime = Math.max(0, Math.round((state.incidentTimer.currentTime + delta) * 10) / 10);
+    if (state.incidentTimer.currentTime > 10) {
+      state.incidentTimer.warned10s = false;
+    }
+    if (state.incidentTimer.running) {
+      state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+    }
   }
   state.timestamp = Date.now();
   renderIncidentTimerDOM();
@@ -1613,11 +1734,14 @@ function resetIncidentTimer() {
     clearInterval(incidentInterval);
     incidentInterval = null;
   }
-  state.incidentTimer.currentTime = state.incidentTimer.duration || 60;
+  const isCountUp = Boolean(state.incidentTimer.countUp);
+  state.incidentTimer.currentTime = isCountUp ? 0.0 : (state.incidentTimer.duration || 60);
+  state.incidentTimer.startTime = null;
   state.incidentTimer.endTime = null;
+  state.incidentTimer.warned8s = false;
   state.incidentTimer.warned10s = false;
   state.timestamp = Date.now();
-  logEvent(`重設突發事件計時為 ${formatIncidentTime(state.incidentTimer.currentTime)}`);
+  logEvent(`重設突發事件計時為 ${formatIncidentTime(state.incidentTimer.currentTime, isCountUp)}`);
   renderIncidentTimerDOM();
   renderControlDOM();
   broadcastState();
@@ -1626,20 +1750,26 @@ function resetIncidentTimer() {
 function changeIncidentTitle(newTitle) {
   if (!state.incidentTimer) return;
   state.incidentTimer.title = newTitle;
-  // Automatically adjust default duration for KNOCKDOWN and YEOL (10s) vs KYESHI (60s)
-  if ((newTitle === "KNOCKDOWN" || newTitle === "YEOL") && state.incidentTimer.duration > 10) {
-    state.incidentTimer.duration = 10;
-    state.incidentTimer.currentTime = 10;
-    state.incidentTimer.warned10s = false;
+  const isCountUp = (newTitle === "KNOCKDOWN");
+  state.incidentTimer.countUp = isCountUp;
+  state.incidentTimer.warned8s = false;
+  state.incidentTimer.warned10s = false;
+
+  if (isCountUp) {
+    state.incidentTimer.duration = 10.0;
+    state.incidentTimer.currentTime = 0.0;
     if (state.incidentTimer.running) {
-      state.incidentTimer.endTime = Date.now() + 10000;
+      state.incidentTimer.startTime = Date.now();
+      state.incidentTimer.endTime = null;
     }
-  } else if (newTitle === "KYESHI" && state.incidentTimer.duration <= 10) {
-    state.incidentTimer.duration = 60;
-    state.incidentTimer.currentTime = 60;
-    state.incidentTimer.warned10s = false;
+  } else {
+    if (state.incidentTimer.duration <= 10) {
+      state.incidentTimer.duration = 60;
+    }
+    state.incidentTimer.currentTime = state.incidentTimer.duration;
     if (state.incidentTimer.running) {
-      state.incidentTimer.endTime = Date.now() + 60000;
+      state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+      state.incidentTimer.startTime = null;
     }
   }
   state.timestamp = Date.now();
@@ -1653,6 +1783,7 @@ function triggerQuickIncident(title, seconds) {
     state.incidentTimer = { active: true };
   }
   state.incidentTimer.title = title;
+  state.incidentTimer.countUp = (title === "KNOCKDOWN");
   setIncidentDuration(seconds);
 }
 
@@ -1675,20 +1806,28 @@ function renderIncidentTimerDOM() {
   
   if (!isIncidentActive) return;
   
+  const isCountUp = Boolean(state.incidentTimer.countUp);
   const titleEl = document.getElementById("sb-incident-title");
   if (titleEl) {
-    titleEl.textContent = state.incidentTimer.title || "TIMEOUT";
+    titleEl.textContent = state.incidentTimer.title || "KNOCKDOWN";
   }
   
   const timeEl = document.getElementById("sb-incident-time");
   if (timeEl && !state.incidentTimer.running) {
-    timeEl.textContent = formatIncidentTime(state.incidentTimer.currentTime);
-    timeEl.classList.toggle("warning-10s", state.incidentTimer.currentTime <= 10 && state.incidentTimer.currentTime > 0);
+    timeEl.textContent = formatIncidentTime(state.incidentTimer.currentTime, isCountUp);
+    if (isCountUp) {
+      timeEl.classList.toggle("at-8s", state.incidentTimer.currentTime >= 8.0 && state.incidentTimer.currentTime < 10.0);
+      timeEl.classList.toggle("at-10s", state.incidentTimer.currentTime >= 10.0);
+      timeEl.classList.remove("warning-10s");
+    } else {
+      timeEl.classList.toggle("warning-10s", state.incidentTimer.currentTime <= 10 && state.incidentTimer.currentTime > 0);
+      timeEl.classList.remove("at-8s", "at-10s");
+    }
   }
   
   const cdDisplay = document.getElementById("ctrl-incident-countdown-display");
   if (cdDisplay) {
-    cdDisplay.textContent = formatIncidentTime(state.incidentTimer.currentTime);
+    cdDisplay.textContent = formatIncidentTime(state.incidentTimer.currentTime, isCountUp);
   }
   
   const playBtn = document.getElementById("btn-incident-toggle-play");

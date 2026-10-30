@@ -1685,8 +1685,18 @@ input:focus, select:focus {
   font-variant-numeric: tabular-nums;
 }
 
-/* 10-second warning state: simple red text */
+/* 10-second countdown warning state */
 .sb-incident-time.warning-10s {
+  color: #ef4444 !important;
+}
+
+/* Knockdown count-up 8-second referee warning */
+.sb-incident-time.at-8s {
+  color: #fbbf24 !important;
+}
+
+/* Knockdown count-up 10-second end */
+.sb-incident-time.at-10s {
   color: #ef4444 !important;
 }
 
