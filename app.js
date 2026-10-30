@@ -675,7 +675,8 @@ function recordJudgeHit(judgeIndex, color, points = 2) {
   const history = state[`${color}JudgeHistory`];
   const windowMs = (state.consensusWindow || 1.0) * 1000;
 
-  let activeKick = history.length > 0 ? history[0] : null;
+  // Active kick is the latest kick in chronological order (at bottom of history)
+  let activeKick = history.length > 0 ? history[history.length - 1] : null;
   // If no kick or last kick was longer ago than the consensus window, start a new kick (該腳)
   if (!activeKick || (now - activeKick.timestamp > windowMs)) {
     activeKick = {
@@ -686,9 +687,9 @@ function recordJudgeHit(judgeIndex, color, points = 2) {
       judgePoints: { 1: 0, 2: 0, 3: 0 },
       consensus: false
     };
-    history.unshift(activeKick);
-    if (history.length > 6) {
-      history.pop();
+    history.push(activeKick); // Appends downwards along the column (沿路記下去)
+    if (history.length > 40) {
+      history.shift(); // Keep reasonable ceiling if match has hundreds of kicks
     }
   }
 
@@ -704,12 +705,10 @@ function renderJudgeHistoryDOM(color) {
   if (!container) return;
 
   const history = state[`${color}JudgeHistory`] || [];
-  const maxRows = 6;
   let html = "";
 
-  for (let r = 0; r < maxRows; r++) {
+  for (let r = 0; r < history.length; r++) {
     const kick = history[r];
-    const isRowEmpty = !kick;
     const rowClass = kick && kick.consensus ? "sb-judge-history-row has-consensus" : "sb-judge-history-row";
 
     const j1Active = kick && kick.judges && kick.judges[1];
@@ -717,11 +716,15 @@ function renderJudgeHistoryDOM(color) {
     const j3Active = kick && kick.judges && kick.judges[3];
 
     const getDotClass = (isActive, jIdx) => {
-      if (!isActive) return isRowEmpty ? "empty" : "inactive";
-      const pts = (kick.judgePoints && kick.judgePoints[jIdx]) || kick.points || 2;
-      // User requirement: 2分以上都用紫色的燈號 (If 2 points or more, use purple light)
-      if (pts >= 2) return "purple-active";
-      return `${color}-active`; // 1 point punch: blue for blue side, red for red side
+      if (!isActive) return "inactive";
+      const pts = (kick.judgePoints && kick.judgePoints[jIdx]) || kick.points || 1;
+      
+      // User rule: 2分以上 (2+ points) confirmed consensus or 2+ points technical kick: PURPLE
+      // Single unconfirmed press or 1pt punch: BLUE for Blue side, RED for Red side
+      if ((kick.consensus && pts >= 2) || pts >= 3) {
+        return "purple-active";
+      }
+      return `${color}-active`;
     };
 
     html += `
@@ -733,7 +736,24 @@ function renderJudgeHistoryDOM(color) {
     `;
   }
 
+  // If no kicks yet in this round, render 1 subtle placeholder row at the top
+  if (history.length === 0) {
+    html = `
+      <div class="sb-judge-history-row">
+        <div class="sb-judge-dot empty"></div>
+        <div class="sb-judge-dot empty"></div>
+        <div class="sb-judge-dot empty"></div>
+      </div>
+    `;
+  }
+
   container.innerHTML = html;
+
+  // Auto-scroll along the column to keep latest kicks visible
+  const sideCol = document.getElementById(`sb-${color}-side-column`);
+  if (sideCol && history.length > 0) {
+    sideCol.scrollTop = sideCol.scrollHeight;
+  }
 }
 
 
@@ -1130,8 +1150,9 @@ function checkConsensus(judgeIndex, color, points) {
   const requiredJudges = Math.max(1, state.minConsensusJudges !== undefined ? state.minConsensusJudges : 1);
   if (matchingJudges.length >= requiredJudges) {
     // Mark current kick as reached consensus in judge history
-    if (state[`${color}JudgeHistory`] && state[`${color}JudgeHistory`].length > 0) {
-      state[`${color}JudgeHistory`][0].consensus = true;
+    const kickHist = state[`${color}JudgeHistory`];
+    if (kickHist && kickHist.length > 0) {
+      kickHist[kickHist.length - 1].consensus = true;
     }
 
     // Award score points and confirmed registered hit

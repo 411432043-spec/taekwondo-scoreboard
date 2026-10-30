@@ -341,11 +341,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* 1st light starts at the VERY TOP */
   z-index: 5;
   box-sizing: border-box;
-  padding: 1vh 0;
+  padding: 2.5vh 0;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sb-side-column::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .sb-side-column.right-side {
@@ -356,9 +362,9 @@ body {
 .sb-side-column .sb-judge-history-rows {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
 }
 
@@ -370,13 +376,6 @@ body {
   justify-items: center;
   padding: 2px 4px;
 }
-
-.sb-side-column .sb-judge-history-row:nth-child(1) { opacity: 1.0; }
-.sb-side-column .sb-judge-history-row:nth-child(2) { opacity: 0.85; }
-.sb-side-column .sb-judge-history-row:nth-child(3) { opacity: 0.70; }
-.sb-side-column .sb-judge-history-row:nth-child(4) { opacity: 0.55; }
-.sb-side-column .sb-judge-history-row:nth-child(5) { opacity: 0.40; }
-.sb-side-column .sb-judge-history-row:nth-child(6) { opacity: 0.30; }
 
 .sb-side-column .sb-judge-dot {
   width: 18px;
@@ -396,22 +395,22 @@ body {
   opacity: 0.35;
 }
 
-/* 1 pt punch: Blue for Blue side, Red for Red side */
+/* 1 pt / single judge: Blue for Blue side, Red for Red side */
 .sb-side-column .sb-judge-dot.blue-active {
   background: #3b82f6;
   border-color: #93c5fd;
-  box-shadow: 0 0 12px #3b82f6, inset 0 0 4px #ffffff;
+  box-shadow: 0 0 14px #3b82f6, inset 0 0 4px #ffffff;
   opacity: 1 !important;
 }
 
 .sb-side-column .sb-judge-dot.red-active {
   background: #ef4444;
   border-color: #fca5a5;
-  box-shadow: 0 0 12px #ef4444, inset 0 0 4px #ffffff;
+  box-shadow: 0 0 14px #ef4444, inset 0 0 4px #ffffff;
   opacity: 1 !important;
 }
 
-/* 2+ pt kicks (2pt body, 3pt head, 4pt/5pt turning): Glowing Purple Light */
+/* 2+ pt kicks / consensus: Glowing Purple Light */
 .sb-side-column .sb-judge-dot.purple-active {
   background: #a855f7;
   border-color: #e9d5ff;
