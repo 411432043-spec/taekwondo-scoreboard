@@ -84,7 +84,7 @@ let state = {
     currentTime: 60,
     duration: 60,
     endTime: null,
-    title: "KYESHI (1 MIN)",
+    title: "KYESHI",
     warned10s: false
   }
 };
@@ -1459,7 +1459,7 @@ function toggleIncidentTimerActive() {
   }
 }
 
-function openIncidentTimer(duration = 60, title = "KYESHI (1 MIN)") {
+function openIncidentTimer(duration = 60, title = "KYESHI") {
   if (!state.incidentTimer) {
     state.incidentTimer = {};
   }
