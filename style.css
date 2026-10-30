@@ -1641,7 +1641,7 @@ input:focus, select:focus {
 }
 
 /* ==========================================================================
-   Central Incident / Timeout Timer Overlay (Non-fullscreen, Multi-border)
+   Central Incident / Timeout Timer Overlay (Clean Simple Black Frame)
    ========================================================================== */
 .sb-incident-overlay {
   position: absolute;
@@ -1649,173 +1649,57 @@ input:focus, select:focus {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 950;
-  width: clamp(340px, 44vw, 580px);
-  pointer-events: none;
-  animation: incidentZoomIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes incidentZoomIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.88);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-/* Multi-Border Layer 1 (Outer Box with Multi-ring Shadows) */
-.sb-incident-frame-outer {
-  background: linear-gradient(135deg, #0f172a 0%, #030712 100%);
-  border: 3px solid #f59e0b; /* Border Layer 1: Bright Amber */
-  border-radius: 20px;
-  padding: 8px;
-  /* Multi-border shadow layers (Layer 2 & 3 rings + glow) */
-  box-shadow: 
-    0 0 0 4px #0b0f19,                    /* Dark separating ring */
-    0 0 0 7px #d97706,                    /* Deep Gold outer border */
-    0 0 0 11px rgba(245, 158, 11, 0.35),  /* Soft amber aura ring */
-    0 25px 60px rgba(0, 0, 0, 0.95),      /* Deep drop shadow */
-    0 0 45px rgba(245, 158, 11, 0.45);    /* Ambient backlight */
-  position: relative;
-}
-
-/* Multi-Border Layer 2 (Inner Framed Container) */
-.sb-incident-frame-inner {
-  border: 2px solid rgba(251, 191, 36, 0.65); /* Border Layer 4: Golden accent */
-  border-radius: 14px;
-  padding: 2.2vh 2vw;
-  background: radial-gradient(circle at center, #1e293b 0%, #0b0f19 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Precision Tech Corner Brackets (Layer 5 borders) */
-.sb-incident-corner {
-  position: absolute;
-  width: 15px;
-  height: 15px;
-  border-color: #fde68a;
-  border-style: solid;
   pointer-events: none;
 }
-.sb-incident-corner.top-left {
-  top: 6px;
-  left: 6px;
-  border-width: 3px 0 0 3px;
-  border-top-left-radius: 4px;
-}
-.sb-incident-corner.top-right {
-  top: 6px;
-  right: 6px;
-  border-width: 3px 3px 0 0;
-  border-top-right-radius: 4px;
-}
-.sb-incident-corner.bottom-left {
-  bottom: 6px;
-  left: 6px;
-  border-width: 0 0 3px 3px;
-  border-bottom-left-radius: 4px;
-}
-.sb-incident-corner.bottom-right {
-  bottom: 6px;
-  right: 6px;
-  border-width: 0 3px 3px 0;
-  border-bottom-right-radius: 4px;
-}
 
-/* Incident Header */
-.sb-incident-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 1.2vh;
-}
-
-.sb-incident-badge {
-  background: #f59e0b;
-  color: #000000;
-  font-size: clamp(0.7rem, 1.3vh, 0.9rem);
-  font-weight: 900;
-  padding: 3px 14px;
-  border-radius: 20px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.sb-incident-title {
-  font-size: clamp(1.25rem, 2.6vh, 1.85rem);
-  font-weight: 900;
-  color: #fef08a;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  text-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-}
-
-/* Timer Display Inner Box with border */
-.sb-incident-timer-wrapper {
-  background: #020617;
-  border: 2px solid rgba(245, 158, 11, 0.5); /* Border Layer 6 */
+.sb-incident-card {
+  background: #000000;
+  border: 4px solid #ffffff;
   border-radius: 12px;
-  padding: 1vh 2.5vw;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.85), 0 0 15px rgba(245, 158, 11, 0.2);
-  margin: 0.6vh 0;
-  width: 88%;
+  padding: 1.8vh 3.5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+  min-width: clamp(260px, 32vw, 480px);
   text-align: center;
 }
 
+.sb-incident-title {
+  font-size: clamp(1.2rem, 2.5vh, 1.8rem);
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 0.6vh;
+}
+
 .sb-incident-time {
-  font-size: clamp(3.8rem, 8.8vh, 6.4rem);
+  font-size: clamp(3.8rem, 8.8vh, 6.5rem);
   font-weight: 900;
   color: #ffffff;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
   letter-spacing: 2px;
-  line-height: 1.05;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  transition: color 0.2s ease;
 }
 
-/* 10-second warning state */
+/* 10-second warning state: simple red text */
 .sb-incident-time.warning-10s {
   color: #ef4444 !important;
-  text-shadow: 0 0 25px rgba(239, 68, 68, 0.95);
-  animation: incidentWarningPulse 0.45s infinite alternate;
 }
 
-@keyframes incidentWarningPulse {
-  from { transform: scale(1); }
-  to { transform: scale(1.05); }
-}
-
-.sb-incident-footer {
-  margin-top: 1vh;
-}
-
-.sb-incident-status {
-  font-size: clamp(0.75rem, 1.4vh, 0.95rem);
-  font-weight: 800;
-  color: #94a3b8;
-  letter-spacing: 1.5px;
-}
-
-/* Control Console Incident Timer Bar */
+/* Control Console Incident Timer Bar - Simple & Clean */
 .ctrl-incident-bar {
-  background: #1c1917;
-  border: 2px solid #f59e0b;
+  background: #0f172a;
+  border: 2px solid #334155;
   border-radius: 8px;
   padding: 10px 14px;
   margin: 0.6rem 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
-  animation: fadeIn 0.2s ease-out;
 }
 
 .ctrl-incident-header {
@@ -1831,9 +1715,9 @@ input:focus, select:focus {
 }
 
 .ctrl-incident-tag {
-  background: #f59e0b;
-  color: #000;
-  font-weight: 900;
+  background: #334155;
+  color: #ffffff;
+  font-weight: 800;
   font-size: 0.75rem;
   padding: 3px 8px;
   border-radius: 4px;
@@ -1841,9 +1725,9 @@ input:focus, select:focus {
 }
 
 .ctrl-incident-select {
-  background: #0f172a;
+  background: #1e293b;
   border: 1px solid #475569;
-  color: #fef08a;
+  color: #ffffff;
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1853,9 +1737,8 @@ input:focus, select:focus {
 .ctrl-incident-countdown {
   font-size: 1.8rem;
   font-weight: 900;
-  color: #fbbf24;
+  color: #ffffff;
   font-family: monospace;
-  text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
 }
 
 .ctrl-incident-controls {
@@ -1877,15 +1760,14 @@ input:focus, select:focus {
 }
 
 .btn-incident-timer {
-  border-color: #f59e0b !important;
-  color: #fbbf24 !important;
+  border-color: #475569 !important;
+  color: #cbd5e1 !important;
 }
 
 .btn-incident-timer.active {
-  background-color: #f59e0b !important;
-  color: #000000 !important;
-  border-color: #fbbf24 !important;
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-color: #64748b !important;
   font-weight: 800;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
 }
 
