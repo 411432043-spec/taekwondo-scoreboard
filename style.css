@@ -1275,9 +1275,9 @@ input:focus, select:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 1.2vh;
-  margin-bottom: 1vh;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 1.5vh;
+  margin-bottom: 2vh;
 }
 
 .devtest-title-group {
@@ -1287,24 +1287,14 @@ input:focus, select:focus {
 }
 
 .devtest-main-title {
-  font-size: clamp(1.4rem, 2.5vh, 2.2rem);
+  font-size: clamp(1.6rem, 2.8vh, 2.4rem);
   font-weight: 900;
   color: #f8fafc;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.devtest-sub-en {
-  font-size: 0.6em;
-  color: #38bdf8;
-  font-weight: 700;
   letter-spacing: 2px;
 }
 
 .devtest-round-badge {
-  font-size: clamp(0.85rem, 1.6vh, 1.15rem);
+  font-size: clamp(0.9rem, 1.6vh, 1.2rem);
   background: #1e3a8a;
   border: 1px solid #3b82f6;
   color: #bfdbfe;
@@ -1312,107 +1302,39 @@ input:focus, select:focus {
   border-radius: 20px;
   font-weight: 800;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  letter-spacing: 1px;
 }
 
-.devtest-steps-container {
-  display: flex;
-  gap: 12px;
-}
-
-.devtest-step-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #1e293b;
-  border: 2px solid #334155;
-  padding: 6px 14px;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  user-select: none;
-}
-
-.devtest-step-pill .step-num {
-  font-size: clamp(0.9rem, 1.7vh, 1.2rem);
-  font-weight: 900;
-  background: #3b82f6;
+.devtest-status-pill {
+  background: #0284c7;
   color: white;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.devtest-step-pill .step-label {
-  font-size: clamp(0.85rem, 1.6vh, 1.1rem);
+  padding: 6px 18px;
+  border-radius: 30px;
   font-weight: 800;
-  color: #cbd5e1;
+  font-size: clamp(0.85rem, 1.6vh, 1.15rem);
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.devtest-step-pill .step-status {
-  font-size: clamp(0.75rem, 1.4vh, 0.95rem);
-  color: #94a3b8;
-  font-weight: 700;
+.devtest-status-pill.all-passed {
+  background: #059669;
+  border-color: #34d399;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
 }
 
-.devtest-step-pill.active {
-  border-color: #38bdf8;
-  background: #0c4a6e;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
-  transform: scale(1.05);
-}
-
-.devtest-step-pill.active .step-status {
-  color: #fef08a;
-}
-
-.devtest-step-pill.passed {
-  border-color: #10b981;
-  background: #064e3b;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
-}
-
-.devtest-step-pill.passed .step-num {
-  background: #10b981;
-}
-
-.devtest-step-pill.passed .step-status {
-  color: #6ee7b7;
-}
-
-.devtest-guide-banner {
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid #475569;
-  border-radius: 10px;
-  padding: 0.8vh 1.5vw;
-  text-align: center;
-  font-size: clamp(1.1rem, 2vh, 1.5rem);
-  font-weight: 700;
-  color: #fef08a;
-  margin-bottom: 1.2vh;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.devtest-guide-banner strong {
-  color: #38bdf8;
-  font-size: 1.15em;
-  text-decoration: underline;
-}
-
-/* Stations 3-Column Grid */
+/* Stations 3-Column Grid (Simultaneous Testing) */
 .devtest-stations-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.6vw;
+  gap: 1.8vw;
   flex-grow: 1;
   min-height: 0;
 }
 
 .devtest-station-card {
   background: #111827;
-  border: 2px solid #1f2937;
+  border: 2px solid #334155;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -1422,38 +1344,39 @@ input:focus, select:focus {
 }
 
 .devtest-station-card.active-target {
-  border-color: #38bdf8;
-  box-shadow: 0 0 25px rgba(56, 189, 248, 0.35);
+  border-color: #0284c7;
+  box-shadow: 0 0 20px rgba(2, 132, 199, 0.25);
   background: #0d1a30;
 }
 
 .devtest-station-card.passed {
   border-color: #10b981;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
 }
 
 .station-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.2vh 1.2vw;
+  padding: 1.4vh 1.4vw;
   background: rgba(0, 0, 0, 0.35);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .station-title {
-  font-size: clamp(1.1rem, 2.2vh, 1.55rem);
+  font-size: clamp(1.2rem, 2.4vh, 1.7rem);
   font-weight: 900;
   color: #f1f5f9;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  letter-spacing: 1px;
 }
 
 .station-tag {
   background: #3b82f6;
   color: #fff;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 6px;
   font-size: 0.85em;
   font-weight: 900;
@@ -1462,8 +1385,9 @@ input:focus, select:focus {
 .station-badge {
   font-size: clamp(0.75rem, 1.4vh, 0.95rem);
   font-weight: 800;
-  padding: 4px 12px;
+  padding: 4px 14px;
   border-radius: 20px;
+  letter-spacing: 0.5px;
 }
 
 .station-badge.in-progress {
@@ -1491,24 +1415,24 @@ input:focus, select:focus {
 .station-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 1.2vh 1vw;
+  gap: 12px;
+  padding: 1.4vh 1.2vw;
   flex-grow: 1;
 }
 
 .station-color-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .color-col-header {
   text-align: center;
-  font-size: clamp(0.85rem, 1.6vh, 1.15rem);
+  font-size: clamp(0.9rem, 1.7vh, 1.2rem);
   font-weight: 900;
-  padding: 4px;
+  padding: 5px;
   border-radius: 6px;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .blue-col .color-col-header {
@@ -1526,7 +1450,7 @@ input:focus, select:focus {
 .devtest-buttons-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   flex-grow: 1;
   justify-content: space-between;
 }
@@ -1535,7 +1459,7 @@ input:focus, select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.8vh 0.8vw;
+  padding: 1vh 0.9vw;
   border-radius: 8px;
   background: #1e293b;
   border: 1px solid #334155;
@@ -1545,7 +1469,7 @@ input:focus, select:focus {
 }
 
 .devtest-btn-item .btn-num {
-  font-size: clamp(1rem, 1.8vh, 1.35rem);
+  font-size: clamp(1.1rem, 2vh, 1.45rem);
   font-weight: 900;
   font-family: monospace;
 }
@@ -1554,13 +1478,14 @@ input:focus, select:focus {
 .devtest-btn-item.red .btn-num { color: #f87171; }
 
 .devtest-btn-item .btn-name {
-  font-size: clamp(0.8rem, 1.5vh, 1.05rem);
-  font-weight: 700;
+  font-size: clamp(0.85rem, 1.6vh, 1.15rem);
+  font-weight: 800;
   color: #cbd5e1;
+  letter-spacing: 0.5px;
 }
 
 .devtest-btn-item .btn-status {
-  font-size: clamp(0.9rem, 1.6vh, 1.2rem);
+  font-size: clamp(1rem, 1.8vh, 1.3rem);
   font-weight: 900;
   color: #64748b;
 }
@@ -1580,7 +1505,7 @@ input:focus, select:focus {
 
 .devtest-btn-item.is-tested .btn-status {
   color: #4ade80 !important;
-  font-size: 1.2em;
+  font-size: 1.25em;
 }
 
 .devtest-btn-item.is-tested .btn-name {
@@ -1609,57 +1534,14 @@ input:focus, select:focus {
 }
 
 .station-footer {
-  padding: 0.8vh 1vw;
+  padding: 1vh 1vw;
   text-align: center;
   background: rgba(0, 0, 0, 0.3);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: clamp(0.85rem, 1.5vh, 1.1rem);
+  font-size: clamp(0.9rem, 1.6vh, 1.15rem);
   font-weight: 800;
   color: #94a3b8;
-}
-
-/* Completion Banner */
-.devtest-complete-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(90deg, #065f46 0%, #059669 100%);
-  border: 2px solid #34d399;
-  padding: 1.2vh 2vw;
-  border-radius: 12px;
-  margin-top: 1.2vh;
-  box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
-  animation: bannerSlideUp 0.35s ease-out;
-}
-
-@keyframes bannerSlideUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.devtest-complete-banner .complete-text {
-  font-size: clamp(1.2rem, 2.2vh, 1.8rem);
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: 1px;
-}
-
-.btn-devtest-start-match {
-  background: #ffffff;
-  color: #065f46;
-  font-size: clamp(1rem, 1.8vh, 1.4rem);
-  font-weight: 900;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: transform 0.1s ease;
-}
-
-.btn-devtest-start-match:hover {
-  transform: scale(1.05);
-  background: #f0fdf4;
+  letter-spacing: 0.5px;
 }
 
 /* Operator Control Panel Device Test Bar */

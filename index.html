@@ -216,9 +216,7 @@
           <button id="btn-timer-minus10" class="btn-secondary">-10 秒</button>
         </div>
         <div class="ctrl-timer-actions">
-          <button id="btn-toggle-device-test" class="btn-secondary btn-dev-test" title="快捷鍵: T 鍵 (手動開啟/關閉設備測試頁面)">
-            <span>🔧</span> 設備測試 (T)
-          </button>
+          <button id="btn-toggle-device-test" class="btn-secondary btn-dev-test" title="Shortcut: T key">TEST (T)</button>
           <button id="btn-play-whistle" class="btn-secondary btn-whistle" title="快捷鍵: W 鍵 (倒數10秒自動響起，亦可手動播放)">
             <span>🎺</span> 哨音 (W)
           </button>
@@ -232,20 +230,13 @@
       <!-- Equipment Test Control Bar (Active when device test is ON) -->
       <section id="ctrl-device-test-bar" class="ctrl-device-test-bar" style="display: none;">
         <div class="ctrl-devtest-header">
-          <span class="ctrl-devtest-tag">🔧 設備測試中 (EQUIPMENT TEST)</span>
-          <span id="ctrl-devtest-status-text" class="ctrl-devtest-status">當前目標：J1 TEST 第一副審</span>
+          <span class="ctrl-devtest-tag">EQUIPMENT TEST</span>
+          <span id="ctrl-devtest-status-text" class="ctrl-devtest-status">All Judges Simultaneous Testing</span>
         </div>
         <div class="ctrl-devtest-buttons">
-          <div class="ctrl-devtest-step-group">
-            <button type="button" id="btn-ctrl-test-j1" class="btn-ctrl-step active" onclick="setDeviceTestJudge(1)">J1 TEST</button>
-            <button type="button" id="btn-ctrl-test-j2" class="btn-ctrl-step" onclick="setDeviceTestJudge(2)">J2 TEST</button>
-            <button type="button" id="btn-ctrl-test-j3" class="btn-ctrl-step" onclick="setDeviceTestJudge(3)">J3 TEST</button>
-          </div>
           <div class="ctrl-devtest-action-group">
-            <button type="button" id="btn-ctrl-test-prev" class="btn-secondary btn-sm" onclick="stepDeviceTestJudge(-1)">◀ 上一位</button>
-            <button type="button" id="btn-ctrl-test-next" class="btn-secondary btn-sm" onclick="stepDeviceTestJudge(1)">下一位 ▶</button>
-            <button type="button" id="btn-ctrl-test-reset" class="btn-secondary btn-sm" onclick="resetDeviceTestState()">🔄 重設按鍵</button>
-            <button type="button" id="btn-ctrl-test-finish" class="btn-primary btn-sm btn-finish-test" onclick="finishDeviceTestAndStartMatch()">✅ 完成測試並開始第 1 局 (Space)</button>
+            <button type="button" id="btn-ctrl-test-reset" class="btn-secondary btn-sm" onclick="resetDeviceTestState()">RESET KEYS</button>
+            <button type="button" id="btn-ctrl-test-finish" class="btn-primary btn-sm btn-finish-test" onclick="finishDeviceTestAndStartMatch()">READY FOR MATCH (Space)</button>
           </div>
         </div>
       </section>
@@ -433,274 +424,250 @@
        3. PUBLIC SCOREBOARD VIEW (#scoreboard)
        ========================================================================== -->
   <div id="view-scoreboard" class="scoreboard-wrapper" style="display: none;">
-    <!-- Equipment Test Screen Overlay (賽前/每局開始前 裁判設備測試) -->
+    <!-- Equipment Test Screen Overlay (Pre-Match / Between Rounds Referee Device Test) -->
     <div id="sb-device-test-overlay" class="sb-device-test-overlay" style="display: none;">
       <div class="devtest-top-bar">
         <div class="devtest-title-group">
-          <div class="devtest-main-title">🥋 裁判設備檢測系統 <span class="devtest-sub-en">EQUIPMENT TEST</span></div>
-          <div id="devtest-round-badge" class="devtest-round-badge">第 1 局 賽前設備檢測 (ROUND 1)</div>
+          <div class="devtest-main-title">EQUIPMENT TEST</div>
+          <div id="devtest-round-badge" class="devtest-round-badge">ROUND 1</div>
         </div>
-        <div class="devtest-steps-container">
-          <div id="devtest-step-1" class="devtest-step-pill active" onclick="setDeviceTestJudge(1)">
-            <span class="step-num">J1</span>
-            <span class="step-label">第一副審 TEST</span>
-            <span id="devtest-step-status-1" class="step-status">⏳ 測試中</span>
-          </div>
-          <div id="devtest-step-2" class="devtest-step-pill" onclick="setDeviceTestJudge(2)">
-            <span class="step-num">J2</span>
-            <span class="step-label">第二副審 TEST</span>
-            <span id="devtest-step-status-2" class="step-status">⚪ 待測試</span>
-          </div>
-          <div id="devtest-step-3" class="devtest-step-pill" onclick="setDeviceTestJudge(3)">
-            <span class="step-num">J3</span>
-            <span class="step-label">第三副審 TEST</span>
-            <span id="devtest-step-status-3" class="step-status">⚪ 待測試</span>
-          </div>
+        <div class="devtest-header-status">
+          <span id="devtest-overall-status" class="devtest-status-pill">ALL JUDGES TESTING</span>
         </div>
       </div>
 
-      <div id="devtest-guide-banner" class="devtest-guide-banner">
-        👉 請 <strong id="devtest-current-judge-name">第一副審 (Judge 1)</strong> 按選手機計分器上的按鍵進行測試
-      </div>
-
-      <!-- Main 3 Stations Grid -->
+      <!-- Main 3 Stations Grid (Simultaneous Testing) -->
       <div class="devtest-stations-grid">
         <!-- Judge 1 Card -->
         <div id="devtest-station-1" class="devtest-station-card active-target">
           <div class="station-header">
             <div class="station-title">
-              <span class="station-tag">J1</span> 第一副審 (Judge 1)
+              <span class="station-tag">J1</span> JUDGE 1
             </div>
-            <div id="station-badge-1" class="station-badge in-progress">測試中 TESTING</div>
+            <div id="station-badge-1" class="station-badge in-progress">TESTING</div>
           </div>
           <div class="station-body">
             <!-- Blue Side -->
             <div class="station-color-col blue-col">
-              <div class="color-col-header">藍方 (BLUE)</div>
+              <div class="color-col-header">BLUE</div>
               <div class="devtest-buttons-list">
                 <div id="devtest-btn-1-blue-1" class="devtest-btn-item blue" onclick="simulateTestHit(1, 'blue', 1)">
                   <span class="btn-num">+1</span>
-                  <span class="btn-name">拳擊</span>
+                  <span class="btn-name">PUNCH</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-blue-2" class="devtest-btn-item blue" onclick="simulateTestHit(1, 'blue', 2)">
                   <span class="btn-num">+2</span>
-                  <span class="btn-name">中端</span>
+                  <span class="btn-name">BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-blue-3" class="devtest-btn-item blue" onclick="simulateTestHit(1, 'blue', 3)">
                   <span class="btn-num">+3</span>
-                  <span class="btn-name">上端</span>
+                  <span class="btn-name">HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-blue-4" class="devtest-btn-item blue" onclick="simulateTestHit(1, 'blue', 4)">
                   <span class="btn-num">+4</span>
-                  <span class="btn-name">轉身中端</span>
+                  <span class="btn-name">TURN BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-blue-5" class="devtest-btn-item blue" onclick="simulateTestHit(1, 'blue', 5)">
                   <span class="btn-num">+5</span>
-                  <span class="btn-name">轉身頭部</span>
+                  <span class="btn-name">TURN HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
               </div>
             </div>
             <!-- Red Side -->
             <div class="station-color-col red-col">
-              <div class="color-col-header">紅方 (RED)</div>
+              <div class="color-col-header">RED</div>
               <div class="devtest-buttons-list">
                 <div id="devtest-btn-1-red-1" class="devtest-btn-item red" onclick="simulateTestHit(1, 'red', 1)">
                   <span class="btn-num">+1</span>
-                  <span class="btn-name">拳擊</span>
+                  <span class="btn-name">PUNCH</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-red-2" class="devtest-btn-item red" onclick="simulateTestHit(1, 'red', 2)">
                   <span class="btn-num">+2</span>
-                  <span class="btn-name">中端</span>
+                  <span class="btn-name">BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-red-3" class="devtest-btn-item red" onclick="simulateTestHit(1, 'red', 3)">
                   <span class="btn-num">+3</span>
-                  <span class="btn-name">上端</span>
+                  <span class="btn-name">HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-red-4" class="devtest-btn-item red" onclick="simulateTestHit(1, 'red', 4)">
                   <span class="btn-num">+4</span>
-                  <span class="btn-name">轉身中端</span>
+                  <span class="btn-name">TURN BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-1-red-5" class="devtest-btn-item red" onclick="simulateTestHit(1, 'red', 5)">
                   <span class="btn-num">+5</span>
-                  <span class="btn-name">轉身頭部</span>
+                  <span class="btn-name">TURN HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
               </div>
             </div>
           </div>
           <div class="station-footer">
-            <div id="station-count-1" class="station-count-label">0 / 10 鍵已測試</div>
+            <div id="station-count-1" class="station-count-label">0 / 10 TESTED</div>
           </div>
         </div>
 
         <!-- Judge 2 Card -->
-        <div id="devtest-station-2" class="devtest-station-card">
+        <div id="devtest-station-2" class="devtest-station-card active-target">
           <div class="station-header">
             <div class="station-title">
-              <span class="station-tag">J2</span> 第二副審 (Judge 2)
+              <span class="station-tag">J2</span> JUDGE 2
             </div>
-            <div id="station-badge-2" class="station-badge waiting">待測試 WAITING</div>
+            <div id="station-badge-2" class="station-badge in-progress">TESTING</div>
           </div>
           <div class="station-body">
             <!-- Blue Side -->
             <div class="station-color-col blue-col">
-              <div class="color-col-header">藍方 (BLUE)</div>
+              <div class="color-col-header">BLUE</div>
               <div class="devtest-buttons-list">
                 <div id="devtest-btn-2-blue-1" class="devtest-btn-item blue" onclick="simulateTestHit(2, 'blue', 1)">
                   <span class="btn-num">+1</span>
-                  <span class="btn-name">拳擊</span>
+                  <span class="btn-name">PUNCH</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-blue-2" class="devtest-btn-item blue" onclick="simulateTestHit(2, 'blue', 2)">
                   <span class="btn-num">+2</span>
-                  <span class="btn-name">中端</span>
+                  <span class="btn-name">BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-blue-3" class="devtest-btn-item blue" onclick="simulateTestHit(2, 'blue', 3)">
                   <span class="btn-num">+3</span>
-                  <span class="btn-name">上端</span>
+                  <span class="btn-name">HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-blue-4" class="devtest-btn-item blue" onclick="simulateTestHit(2, 'blue', 4)">
                   <span class="btn-num">+4</span>
-                  <span class="btn-name">轉身中端</span>
+                  <span class="btn-name">TURN BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-blue-5" class="devtest-btn-item blue" onclick="simulateTestHit(2, 'blue', 5)">
                   <span class="btn-num">+5</span>
-                  <span class="btn-name">轉身頭部</span>
+                  <span class="btn-name">TURN HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
               </div>
             </div>
             <!-- Red Side -->
             <div class="station-color-col red-col">
-              <div class="color-col-header">紅方 (RED)</div>
+              <div class="color-col-header">RED</div>
               <div class="devtest-buttons-list">
                 <div id="devtest-btn-2-red-1" class="devtest-btn-item red" onclick="simulateTestHit(2, 'red', 1)">
                   <span class="btn-num">+1</span>
-                  <span class="btn-name">拳擊</span>
+                  <span class="btn-name">PUNCH</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-red-2" class="devtest-btn-item red" onclick="simulateTestHit(2, 'red', 2)">
                   <span class="btn-num">+2</span>
-                  <span class="btn-name">中端</span>
+                  <span class="btn-name">BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-red-3" class="devtest-btn-item red" onclick="simulateTestHit(2, 'red', 3)">
                   <span class="btn-num">+3</span>
-                  <span class="btn-name">上端</span>
+                  <span class="btn-name">HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-red-4" class="devtest-btn-item red" onclick="simulateTestHit(2, 'red', 4)">
                   <span class="btn-num">+4</span>
-                  <span class="btn-name">轉身中端</span>
+                  <span class="btn-name">TURN BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-2-red-5" class="devtest-btn-item red" onclick="simulateTestHit(2, 'red', 5)">
                   <span class="btn-num">+5</span>
-                  <span class="btn-name">轉身頭部</span>
+                  <span class="btn-name">TURN HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
               </div>
             </div>
           </div>
           <div class="station-footer">
-            <div id="station-count-2" class="station-count-label">0 / 10 鍵已測試</div>
+            <div id="station-count-2" class="station-count-label">0 / 10 TESTED</div>
           </div>
         </div>
 
         <!-- Judge 3 Card -->
-        <div id="devtest-station-3" class="devtest-station-card">
+        <div id="devtest-station-3" class="devtest-station-card active-target">
           <div class="station-header">
             <div class="station-title">
-              <span class="station-tag">J3</span> 第三副審 (Judge 3)
+              <span class="station-tag">J3</span> JUDGE 3
             </div>
-            <div id="station-badge-3" class="station-badge waiting">待測試 WAITING</div>
+            <div id="station-badge-3" class="station-badge in-progress">TESTING</div>
           </div>
           <div class="station-body">
             <!-- Blue Side -->
             <div class="station-color-col blue-col">
-              <div class="color-col-header">藍方 (BLUE)</div>
+              <div class="color-col-header">BLUE</div>
               <div class="devtest-buttons-list">
                 <div id="devtest-btn-3-blue-1" class="devtest-btn-item blue" onclick="simulateTestHit(3, 'blue', 1)">
                   <span class="btn-num">+1</span>
-                  <span class="btn-name">拳擊</span>
+                  <span class="btn-name">PUNCH</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-blue-2" class="devtest-btn-item blue" onclick="simulateTestHit(3, 'blue', 2)">
                   <span class="btn-num">+2</span>
-                  <span class="btn-name">中端</span>
+                  <span class="btn-name">BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-blue-3" class="devtest-btn-item blue" onclick="simulateTestHit(3, 'blue', 3)">
                   <span class="btn-num">+3</span>
-                  <span class="btn-name">上端</span>
+                  <span class="btn-name">HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-blue-4" class="devtest-btn-item blue" onclick="simulateTestHit(3, 'blue', 4)">
                   <span class="btn-num">+4</span>
-                  <span class="btn-name">轉身中端</span>
+                  <span class="btn-name">TURN BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-blue-5" class="devtest-btn-item blue" onclick="simulateTestHit(3, 'blue', 5)">
                   <span class="btn-num">+5</span>
-                  <span class="btn-name">轉身頭部</span>
+                  <span class="btn-name">TURN HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
               </div>
             </div>
             <!-- Red Side -->
             <div class="station-color-col red-col">
-              <div class="color-col-header">紅方 (RED)</div>
+              <div class="color-col-header">RED</div>
               <div class="devtest-buttons-list">
                 <div id="devtest-btn-3-red-1" class="devtest-btn-item red" onclick="simulateTestHit(3, 'red', 1)">
                   <span class="btn-num">+1</span>
-                  <span class="btn-name">拳擊</span>
+                  <span class="btn-name">PUNCH</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-red-2" class="devtest-btn-item red" onclick="simulateTestHit(3, 'red', 2)">
                   <span class="btn-num">+2</span>
-                  <span class="btn-name">中端</span>
+                  <span class="btn-name">BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-red-3" class="devtest-btn-item red" onclick="simulateTestHit(3, 'red', 3)">
                   <span class="btn-num">+3</span>
-                  <span class="btn-name">上端</span>
+                  <span class="btn-name">HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-red-4" class="devtest-btn-item red" onclick="simulateTestHit(3, 'red', 4)">
                   <span class="btn-num">+4</span>
-                  <span class="btn-name">轉身中端</span>
+                  <span class="btn-name">TURN BODY</span>
                   <span class="btn-status">○</span>
                 </div>
                 <div id="devtest-btn-3-red-5" class="devtest-btn-item red" onclick="simulateTestHit(3, 'red', 5)">
                   <span class="btn-num">+5</span>
-                  <span class="btn-name">轉身頭部</span>
+                  <span class="btn-name">TURN HEAD</span>
                   <span class="btn-status">○</span>
                 </div>
               </div>
             </div>
           </div>
           <div class="station-footer">
-            <div id="station-count-3" class="station-count-label">0 / 10 鍵已測試</div>
+            <div id="station-count-3" class="station-count-label">0 / 10 TESTED</div>
           </div>
         </div>
-      </div>
-
-      <!-- Ready Completion Banner -->
-      <div id="devtest-complete-banner" class="devtest-complete-banner" style="display: none;">
-        <div class="complete-text">🎉 全體裁判設備檢測完成！選手就位準備開始比賽</div>
-        <button type="button" id="devtest-btn-scoreboard-start" class="btn-devtest-start-match" onclick="finishDeviceTestAndStartMatch()">進入本局比賽 (START ROUND)</button>
       </div>
     </div>
 

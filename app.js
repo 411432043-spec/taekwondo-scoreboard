@@ -1101,14 +1101,13 @@ function flashControlJudgeIndicator(judgeIndex, color) {
 }
 
 // ==========================================================================
-// Referee Equipment Device Test Mode (賽前 / 每局開始前 裁判設備測試)
+// Referee Equipment Device Test Mode (Simultaneous Testing - Pure English)
 // ==========================================================================
 function handleDeviceTestInput(judgeIndex, color, points, deviceType = "Mobile") {
   if (!state.deviceTest) {
     state.deviceTest = {
       active: true,
       round: state.currentRound || 1,
-      currentJudge: 1,
       results: {}
     };
   }
@@ -1133,7 +1132,7 @@ function handleDeviceTestInput(judgeIndex, color, points, deviceType = "Mobile")
   flashDeviceTestButton(judgeIndex, color, points);
   flashControlJudgeIndicator(judgeIndex, color);
 
-  logEvent(`[設備測試] 第 ${judgeIndex} 副審 (J${judgeIndex}) 測試按鍵：${color === 'blue' ? '藍方' : '紅方'} +${points}分 (${deviceType})`);
+  logEvent(`[DEVICE TEST] Judge ${judgeIndex} (J${judgeIndex}): ${color.toUpperCase()} +${points} (${deviceType})`);
 
   // Check if judge has tested their buttons
   const jResults = state.deviceTest.results[judgeIndex];
@@ -1146,25 +1145,27 @@ function handleDeviceTestInput(judgeIndex, color, points, deviceType = "Mobile")
     if (!jResults.completed) {
       jResults.completed = true;
       playCompletionChime();
-      logEvent(`[設備測試] ✓ 第 ${judgeIndex} 副審 (J${judgeIndex}) 設備檢測合格！`);
+      logEvent(`[DEVICE TEST] Judge ${judgeIndex} (J${judgeIndex}) PASSED`);
     }
   }
 
-  // Auto-advance sequentially from J1 -> J2 -> J3 -> ALL READY
-  if (state.deviceTest.currentJudge === judgeIndex && jResults.completed) {
-    if (state.deviceTest.currentJudge < 3) {
-      setTimeout(() => {
-        if (state.deviceTest && state.deviceTest.active && state.deviceTest.currentJudge === judgeIndex) {
-          setDeviceTestJudge(judgeIndex + 1);
-        }
-      }, 700);
-    } else if (state.deviceTest.currentJudge === 3) {
-      setTimeout(() => {
-        if (state.deviceTest && state.deviceTest.active && state.deviceTest.currentJudge === 3) {
-          setDeviceTestJudge(4); // All Ready
-        }
-      }, 700);
-    }
+  // Check if all 3 judges have completed the test
+  const allCompleted = Boolean(
+    state.deviceTest.results[1]?.completed &&
+    state.deviceTest.results[2]?.completed &&
+    state.deviceTest.results[3]?.completed
+  );
+
+  if (allCompleted && !state.deviceTest.allPassedTriggered) {
+    state.deviceTest.allPassedTriggered = true;
+    playCompletionChime();
+    logEvent(`[DEVICE TEST] All judges passed! Returning to Match Ready...`);
+    // Brief 1.2-second pause so green passed state is visible, then directly return to match ready screen without extra dialogs
+    setTimeout(() => {
+      if (state.deviceTest && state.deviceTest.active) {
+        returnToMatchReady();
+      }
+    }, 1200);
   }
 
   // Broadcast device test hit to all open windows/iframes
@@ -1186,15 +1187,15 @@ function startDeviceTest(roundNum = null) {
     state.deviceTest = {};
   }
   state.deviceTest.active = true;
+  state.deviceTest.allPassedTriggered = false;
   state.deviceTest.round = roundNum || state.currentRound || 1;
-  state.deviceTest.currentJudge = 1;
   state.deviceTest.results = {
     1: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
     2: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
     3: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false }
   };
   
-  logEvent(`進入第 ${state.deviceTest.round} 局裁判設備測試模式 (J1 TEST -> J3 TEST)`);
+  logEvent(`[DEVICE TEST] Round ${state.deviceTest.round} Equipment Test Started (All Judges)`);
   renderDeviceTestDOM();
   renderControlDOM();
   broadcastState();
@@ -1203,10 +1204,26 @@ function startDeviceTest(roundNum = null) {
 function closeDeviceTest() {
   if (state.deviceTest) {
     state.deviceTest.active = false;
+    state.deviceTest.allPassedTriggered = false;
   }
   renderDeviceTestDOM();
   renderControlDOM();
   broadcastState();
+}
+
+function returnToMatchReady() {
+  if (state.deviceTest) {
+    state.deviceTest.active = false;
+    state.deviceTest.allPassedTriggered = false;
+  }
+  logEvent(`[DEVICE TEST] Test Completed - Match Ready Screen`);
+  renderDeviceTestDOM();
+  renderControlDOM();
+  broadcastState();
+}
+
+function finishDeviceTestAndStartMatch() {
+  returnToMatchReady();
 }
 
 function toggleDeviceTest() {
@@ -1218,6 +1235,7 @@ function toggleDeviceTest() {
 }
 
 function setDeviceTestJudge(judgeNum) {
+  // Maintained for backward compatibility; all judges test simultaneously
   if (!state.deviceTest) return;
   state.deviceTest.currentJudge = judgeNum;
   renderDeviceTestDOM();
@@ -1226,40 +1244,22 @@ function setDeviceTestJudge(judgeNum) {
 }
 
 function stepDeviceTestJudge(delta) {
-  if (!state.deviceTest) return;
-  let next = (state.deviceTest.currentJudge || 1) + delta;
-  if (next < 1) next = 1;
-  if (next > 4) next = 4;
-  setDeviceTestJudge(next);
+  // Maintained for backward compatibility
+  setDeviceTestJudge(1);
 }
 
 function resetDeviceTestState() {
   if (!state.deviceTest) return;
-  state.deviceTest.currentJudge = 1;
+  state.deviceTest.allPassedTriggered = false;
   state.deviceTest.results = {
     1: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
     2: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false },
     3: { blue: { 1: false, 2: false, 3: false, 4: false, 5: false }, red: { 1: false, 2: false, 3: false, 4: false, 5: false }, completed: false }
   };
-  logEvent("重設裁判設備測試按鍵紀錄");
+  logEvent("[DEVICE TEST] Reset All Keys");
   renderDeviceTestDOM();
   renderControlDOM();
   broadcastState();
-}
-
-function finishDeviceTestAndStartMatch() {
-  if (state.deviceTest) {
-    state.deviceTest.active = false;
-  }
-  logEvent(`第 ${state.currentRound} 局設備測試完成，開始比賽！`);
-  renderDeviceTestDOM();
-  renderControlDOM();
-  broadcastState();
-  
-  // If timer not yet started, start timer
-  if (!state.timerRunning) {
-    toggleTimer();
-  }
 }
 
 function simulateTestHit(judgeIndex, color, points) {
@@ -1296,62 +1296,47 @@ function renderDeviceTestDOM() {
 
   if (!isTesting) return;
 
-  const currentJudge = state.deviceTest.currentJudge || 1;
   const roundNum = state.deviceTest.round || state.currentRound || 1;
   const results = state.deviceTest.results || {};
 
-  // Update round badges & labels
+  // Check if all 3 judges have completed
+  const allCompleted = Boolean(
+    results[1]?.completed &&
+    results[2]?.completed &&
+    results[3]?.completed
+  );
+
+  // Update round badge
   const roundBadge = document.getElementById("devtest-round-badge");
   if (roundBadge) {
-    roundBadge.textContent = `第 ${roundNum} 局 賽前設備檢測 (ROUND ${roundNum})`;
+    roundBadge.textContent = `ROUND ${roundNum}`;
   }
+
+  // Update overall header status pill
+  const overallStatus = document.getElementById("devtest-overall-status");
+  if (overallStatus) {
+    if (allCompleted) {
+      overallStatus.textContent = "ALL PASSED - READY FOR MATCH";
+      overallStatus.className = "devtest-status-pill all-passed";
+    } else {
+      overallStatus.textContent = "ALL JUDGES TESTING";
+      overallStatus.className = "devtest-status-pill";
+    }
+  }
+
+  // Update operator control bar
   const ctrlFinishBtn = document.getElementById("btn-ctrl-test-finish");
   if (ctrlFinishBtn) {
-    ctrlFinishBtn.textContent = `✅ 完成測試並開始第 ${roundNum} 局 (Space)`;
+    ctrlFinishBtn.textContent = "READY FOR MATCH (Space)";
   }
   const ctrlStatusText = document.getElementById("ctrl-devtest-status-text");
   if (ctrlStatusText) {
-    ctrlStatusText.textContent = currentJudge <= 3 
-      ? `當前目標：J${currentJudge} TEST 第 ${currentJudge} 副審`
-      : `🎉 全體裁判測試已完成！`;
+    ctrlStatusText.textContent = allCompleted 
+      ? "ALL PASSED - READY FOR MATCH"
+      : "ALL JUDGES SIMULTANEOUS TESTING";
   }
 
-  // Update step pills
-  for (let j = 1; j <= 3; j++) {
-    const stepPill = document.getElementById(`devtest-step-${j}`);
-    const stepStatus = document.getElementById(`devtest-step-status-${j}`);
-    const ctrlStepBtn = document.getElementById(`btn-ctrl-test-j${j}`);
-    const jRes = results[j] || { completed: false };
-
-    if (stepPill) {
-      stepPill.classList.toggle("active", currentJudge === j);
-      stepPill.classList.toggle("passed", Boolean(jRes.completed));
-    }
-    if (stepStatus) {
-      if (jRes.completed) {
-        stepStatus.textContent = "✓ 檢測合格";
-      } else if (currentJudge === j) {
-        stepStatus.textContent = "⏳ 測試中";
-      } else {
-        stepStatus.textContent = "⚪ 待測試";
-      }
-    }
-    if (ctrlStepBtn) {
-      ctrlStepBtn.classList.toggle("active", currentJudge === j);
-      ctrlStepBtn.classList.toggle("passed", Boolean(jRes.completed));
-    }
-  }
-
-  // Guide banner text
-  const guideName = document.getElementById("devtest-current-judge-name");
-  if (guideName) {
-    if (currentJudge === 1) guideName.textContent = "第一副審 (Judge 1)";
-    else if (currentJudge === 2) guideName.textContent = "第二副審 (Judge 2)";
-    else if (currentJudge === 3) guideName.textContent = "第三副審 (Judge 3)";
-    else guideName.textContent = "全體裁判 (All Judges)";
-  }
-
-  // Render 3 stations
+  // Render 3 stations concurrently
   for (let j = 1; j <= 3; j++) {
     const stationCard = document.getElementById(`devtest-station-${j}`);
     const stationBadge = document.getElementById(`station-badge-${j}`);
@@ -1385,33 +1370,23 @@ function renderDeviceTestDOM() {
     }
 
     if (stationCard) {
-      stationCard.classList.toggle("active-target", currentJudge === j);
+      stationCard.classList.add("active-target");
       stationCard.classList.toggle("passed", Boolean(jRes.completed));
     }
 
     if (stationBadge) {
       if (jRes.completed) {
-        stationBadge.textContent = "✓ 檢測合格 PASSED";
+        stationBadge.textContent = "PASSED";
         stationBadge.className = "station-badge passed";
-      } else if (currentJudge === j) {
-        stationBadge.textContent = "⏳ 測試中 TESTING";
-        stationBadge.className = "station-badge in-progress";
       } else {
-        stationBadge.textContent = "⚪ 待測試 WAITING";
-        stationBadge.className = "station-badge waiting";
+        stationBadge.textContent = "TESTING";
+        stationBadge.className = "station-badge in-progress";
       }
     }
 
     if (stationCount) {
-      stationCount.textContent = `${testedCount} / 10 鍵已測試`;
+      stationCount.textContent = jRes.completed ? "10 / 10 PASSED" : `${testedCount} / 10 TESTED`;
     }
-  }
-
-  // Check if all judges completed
-  const allCompleted = Boolean(results[1]?.completed && results[2]?.completed && results[3]?.completed) || currentJudge >= 4;
-  const completeBanner = document.getElementById("devtest-complete-banner");
-  if (completeBanner) {
-    completeBanner.style.display = allCompleted ? "flex" : "none";
   }
 }
 
@@ -1420,6 +1395,7 @@ window.setDeviceTestJudge = setDeviceTestJudge;
 window.stepDeviceTestJudge = stepDeviceTestJudge;
 window.resetDeviceTestState = resetDeviceTestState;
 window.finishDeviceTestAndStartMatch = finishDeviceTestAndStartMatch;
+window.returnToMatchReady = returnToMatchReady;
 window.simulateTestHit = simulateTestHit;
 
 function updateSuperiorityLead() {
