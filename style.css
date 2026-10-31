@@ -683,9 +683,11 @@ body {
 }
 
 .sb-match-id {
-  font-size: 2vw;
+  font-size: clamp(2rem, 3.2vw, 4.2rem);
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  color: #ffffff;
 }
 
 .sb-match-label {
@@ -1754,22 +1756,25 @@ input:focus, select:focus {
 }
 
 /* Pure display state (Video Review, Referee Consult) - No timer, bold status title */
-.sb-incident-card.pure-display {
-  padding: 3.2vh 4.5vw;
-  min-width: clamp(320px, 42vw, 620px);
+.sb-incident-card.pure-display,
+.sb-incident-card[data-pure="true"] {
+  padding: 3.5vh 5vw;
+  min-width: clamp(320px, 45vw, 680px);
 }
 
-.sb-incident-card.pure-display .sb-incident-title {
-  font-size: clamp(2.2rem, 5.2vh, 4.2rem);
-  font-weight: 900;
-  letter-spacing: 3px;
-  margin-bottom: 0;
-  color: #ffffff;
-  line-height: 1.15;
-  text-align: center;
+.sb-incident-card.pure-display .sb-incident-title,
+.sb-incident-card[data-pure="true"] .sb-incident-title {
+  font-size: clamp(2.4rem, 5.5vh, 4.4rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 3px !important;
+  margin-bottom: 0 !important;
+  color: #ffffff !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
 }
 
-.sb-incident-card.pure-display .sb-incident-time {
+.sb-incident-card.pure-display .sb-incident-time,
+.sb-incident-card[data-pure="true"] .sb-incident-time {
   display: none !important;
 }
 

@@ -480,8 +480,14 @@ function startScoreboardTimerLoop() {
     }
     
     if (incidentActive) {
-      if (state.incidentTimer.pureDisplay) {
+      const isPure = Boolean(state.incidentTimer.pureDisplay || (state.incidentTimer.title && (state.incidentTimer.title.includes("VIDEO REVIEW") || state.incidentTimer.title.includes("REFEREE CONSULT"))));
+      if (isPure) {
         // Pure display mode (Video Review, Referee Consult): No timing updates
+        const timeEl = document.getElementById("sb-incident-time");
+        if (timeEl) {
+          timeEl.style.display = "none";
+          timeEl.textContent = "";
+        }
       } else if (state.incidentTimer.countUp && state.incidentTimer.startTime) {
         const elapsed = Math.min(10.0, (Date.now() - state.incidentTimer.startTime) / 1000);
         const timeEl = document.getElementById("sb-incident-time");
@@ -579,7 +585,9 @@ function renderScoreboardDOM() {
 
   // Update Match Details
   const matchIdElem = document.getElementById("sb-match-id");
-  if (matchIdElem) matchIdElem.textContent = state.matchId ? (state.matchId + " MATCH") : "";
+  if (matchIdElem) matchIdElem.textContent = state.matchId || "";
+  const matchLabelElem = document.querySelector(".sb-match-label");
+  if (matchLabelElem) matchLabelElem.style.display = state.matchId ? "block" : "none";
   const matchClassElem = document.getElementById("sb-match-class");
   if (matchClassElem) matchClassElem.textContent = state.matchClass || "";
   const roundNumElem = document.getElementById("sb-round-num");
@@ -1889,13 +1897,21 @@ function renderIncidentTimerDOM() {
   if (!isIncidentActive) return;
   
   const title = state.incidentTimer.title || "KNOCKDOWN";
-  const isPureDisplay = Boolean(state.incidentTimer.pureDisplay || title === "VIDEO REVIEW" || title === "REFEREE CONSULT");
+  const isPureDisplay = Boolean(
+    state.incidentTimer.pureDisplay || 
+    (title && (title.includes("VIDEO REVIEW") || title.includes("REFEREE CONSULT") || title.includes("錄影審查") || title.includes("裁判研商")))
+  );
   const isCountUp = Boolean(state.incidentTimer.countUp);
 
   // Scoreboard Card DOM
-  const cardEl = document.querySelector(".sb-incident-card");
+  const cardEl = document.getElementById("sb-incident-card") || document.querySelector(".sb-incident-card");
   if (cardEl) {
     cardEl.classList.toggle("pure-display", isPureDisplay);
+    if (isPureDisplay) {
+      cardEl.setAttribute("data-pure", "true");
+    } else {
+      cardEl.removeAttribute("data-pure");
+    }
   }
 
   const titleEl = document.getElementById("sb-incident-title");
@@ -1907,6 +1923,7 @@ function renderIncidentTimerDOM() {
   if (timeEl) {
     if (isPureDisplay) {
       timeEl.style.display = "none";
+      timeEl.textContent = "";
     } else {
       timeEl.style.display = "block";
       if (!state.incidentTimer.running) {
