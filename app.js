@@ -639,39 +639,20 @@ function renderScoreboardDOM() {
   // Central Timer:
   // When timer is running, scoreboardTimerLoop has exclusive control over the smooth 33fps display.
   // We strictly avoid overwriting sb-timer-display on score updates to prevent countdown jitter!
-  if (!state.timerRunning) {
+  if (!state.timerRunning || (state.earlyTerminationNotice && state.earlyTerminationNotice.code)) {
     updateTimerDisplay(state.currentTime);
   }
   renderIncidentTimerDOM();
+}
 
-  // Early Termination / Winner Overlay on Public Scoreboard
-  const earlyOverlay = document.getElementById("sb-early-overlay");
-  const earlyCard = document.getElementById("sb-early-card");
-  const earlyBadge = document.getElementById("sb-early-badge");
-  const earlyTitle = document.getElementById("sb-early-title");
-  const earlyWinner = document.getElementById("sb-early-winner");
-  const earlySub = document.getElementById("sb-early-sub");
-
-  if (state.earlyTerminationNotice) {
-    const notice = state.earlyTerminationNotice;
-    const winnerColor = notice.winner;
-    const winnerDisplayName = state[`${winnerColor}Name`] || (winnerColor === "blue" ? "藍方" : "紅方");
-    
-    if (earlyOverlay) earlyOverlay.style.display = "block";
-    if (earlyCard) {
-      earlyCard.className = `sb-early-card winner-${winnerColor}`;
-    }
-    if (earlyBadge) earlyBadge.textContent = notice.code || "WIN";
-    if (earlyTitle) earlyTitle.textContent = notice.label || "EARLY TERMINATION";
-    if (earlyWinner) earlyWinner.textContent = `${winnerDisplayName} (${winnerColor.toUpperCase()}) WINNER`;
-    if (earlySub) {
-      earlySub.textContent = (notice.scope === "match" || state.matchOver) 
-        ? "MATCH OVER" 
-        : `ROUND ${notice.round || state.currentRound} WIN`;
-    }
-  } else {
-    if (earlyOverlay) earlyOverlay.style.display = "none";
+function formatRoundStatHTML(scoreVal, code) {
+  if (scoreVal === null || scoreVal === undefined) {
+    return `<span class="round-score-num">--</span>`;
   }
+  if (code) {
+    return `<span class="round-score-num">${scoreVal}</span><span class="round-score-code">(${code})</span>`;
+  }
+  return `<span class="round-score-num">${scoreVal}</span>`;
 }
 
 function renderRoundHistoryDOM() {
@@ -682,23 +663,25 @@ function renderRoundHistoryDOM() {
     const hasPlayed = Boolean(entry && entry.blue !== null && entry.red !== null);
     const codeTag = (hasPlayed && entry.code) ? ` [${entry.code}]` : "";
     
-    // Blue Side (Standard stat-box: score or --)
+    // Blue Side (Standard stat-box: score or --, centered number and code)
     const blueScore = document.getElementById(`sb-blue-r${r}-score`);
     if (blueScore) {
       if (hasPlayed) {
-        blueScore.textContent = (entry.code && entry.winner === "blue") ? `${entry.blue} (${entry.code})` : entry.blue;
+        const code = (entry.code && entry.winner === "blue") ? entry.code : "";
+        blueScore.innerHTML = formatRoundStatHTML(entry.blue, code);
       } else {
-        blueScore.textContent = "--";
+        blueScore.innerHTML = formatRoundStatHTML(null);
       }
     }
 
-    // Red Side (Standard stat-box: score or --)
+    // Red Side (Standard stat-box: score or --, centered number and code)
     const redScore = document.getElementById(`sb-red-r${r}-score`);
     if (redScore) {
       if (hasPlayed) {
-        redScore.textContent = (entry.code && entry.winner === "red") ? `${entry.red} (${entry.code})` : entry.red;
+        const code = (entry.code && entry.winner === "red") ? entry.code : "";
+        redScore.innerHTML = formatRoundStatHTML(entry.red, code);
       } else {
-        redScore.textContent = "--";
+        redScore.innerHTML = formatRoundStatHTML(null);
       }
     }
 
@@ -749,12 +732,24 @@ function updateTimerDisplay(currentTime) {
   const timerBox = document.getElementById("sb-timer-box");
   const display = document.getElementById("sb-timer-display");
   const label = document.getElementById("sb-timer-label");
-  if (!timerBox || !display || !label) return;
+  if (!timerBox || !display) return;
+
+  const hasEarly = Boolean(state.earlyTerminationNotice && state.earlyTerminationNotice.code);
+
+  if (hasEarly) {
+    const code = state.earlyTerminationNotice.code;
+    const winnerColor = state.earlyTerminationNotice.winner || "";
+    timerBox.className = `sb-timer-box has-early-code${winnerColor ? ` winner-${winnerColor}` : ""}`;
+    if (label) label.textContent = "";
+    display.textContent = code;
+    return;
+  }
 
   // Stable class toggling (prevents removing & re-adding classes which causes CSS transition flashing)
+  timerBox.classList.remove("has-early-code", "winner-blue", "winner-red");
   timerBox.classList.toggle("active", Boolean(state.timerRunning));
   timerBox.classList.toggle("rest-time", Boolean(state.isRest));
-  label.textContent = state.isRest ? "REST" : "MATCH";
+  if (label) label.textContent = state.isRest ? "REST" : "MATCH";
 
   // Time format
   const timeVal = (currentTime !== undefined) ? currentTime : state.currentTime;
@@ -2280,6 +2275,9 @@ function toggleTimer() {
   } else {
     // Play
     initAudio(); // Warm up audio context
+    if (!state.matchOver && state.earlyTerminationNotice) {
+      state.earlyTerminationNotice = null;
+    }
     state.timerRunning = true;
     state.timerEndTime = Date.now() + Math.round(state.currentTime * 1000);
     if (state.currentTime > 10) {
@@ -2736,7 +2734,13 @@ function renderControlDOM() {
   // When running, startControlTimer handles smooth updates without stale time overwrite.
   if (!state.timerRunning) {
     const timerElem = document.getElementById("ctrl-timer-time");
-    if (timerElem) timerElem.textContent = formatTime(state.currentTime);
+    if (timerElem) {
+      if (state.earlyTerminationNotice && state.earlyTerminationNotice.code) {
+        timerElem.textContent = state.earlyTerminationNotice.code;
+      } else {
+        timerElem.textContent = formatTime(state.currentTime);
+      }
+    }
   }
   
   // Active Timer Play Button Label
