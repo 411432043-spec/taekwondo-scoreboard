@@ -480,7 +480,9 @@ function startScoreboardTimerLoop() {
     }
     
     if (incidentActive) {
-      if (state.incidentTimer.countUp && state.incidentTimer.startTime) {
+      if (state.incidentTimer.pureDisplay) {
+        // Pure display mode (Video Review, Referee Consult): No timing updates
+      } else if (state.incidentTimer.countUp && state.incidentTimer.startTime) {
         const elapsed = Math.min(10.0, (Date.now() - state.incidentTimer.startTime) / 1000);
         const timeEl = document.getElementById("sb-incident-time");
         if (timeEl) {
@@ -1540,11 +1542,13 @@ function openIncidentTimer(duration = 10, title = "KNOCKDOWN") {
   if (state.timerRunning) {
     toggleTimer();
   }
+  const isPureDisplay = (title === "VIDEO REVIEW" || title === "REFEREE CONSULT");
   const isCountUp = (title === "KNOCKDOWN");
   state.incidentTimer.active = true;
   state.incidentTimer.running = false;
+  state.incidentTimer.pureDisplay = isPureDisplay;
   state.incidentTimer.countUp = isCountUp;
-  state.incidentTimer.duration = duration;
+  state.incidentTimer.duration = isPureDisplay ? 0 : duration;
   state.incidentTimer.currentTime = isCountUp ? 0.0 : duration;
   state.incidentTimer.startTime = null;
   state.incidentTimer.endTime = null;
@@ -1553,7 +1557,7 @@ function openIncidentTimer(duration = 10, title = "KNOCKDOWN") {
   state.incidentTimer.warned10s = false;
   state.timestamp = Date.now();
   
-  logEvent(`開啟突發事件計時 (${state.incidentTimer.title} ${formatIncidentTime(state.incidentTimer.currentTime, isCountUp)})`);
+  logEvent(`開啟突發事件看板: ${state.incidentTimer.title}${isPureDisplay ? ' (純顯示)' : ''}`);
   renderIncidentTimerDOM();
   renderControlDOM();
   broadcastState();
@@ -1563,6 +1567,7 @@ function closeIncidentTimer() {
   if (state.incidentTimer) {
     state.incidentTimer.active = false;
     state.incidentTimer.running = false;
+    state.incidentTimer.pureDisplay = false;
     state.incidentTimer.startTime = null;
     state.incidentTimer.endTime = null;
   }
@@ -1571,7 +1576,7 @@ function closeIncidentTimer() {
     incidentInterval = null;
   }
   state.timestamp = Date.now();
-  logEvent("關閉突發事件計時");
+  logEvent("關閉突發事件看板");
   renderIncidentTimerDOM();
   renderControlDOM();
   broadcastState();
@@ -1581,6 +1586,10 @@ function toggleIncidentTimer() {
   if (!state.incidentTimer) return;
   if (!state.incidentTimer.active) {
     openIncidentTimer();
+    return;
+  }
+  if (state.incidentTimer.pureDisplay) {
+    // Pure display mode does not use timer toggle
     return;
   }
   const isCountUp = Boolean(state.incidentTimer.countUp);
@@ -1769,7 +1778,7 @@ function adjustIncidentTime(delta) {
 }
 
 function resetIncidentTimer() {
-  if (!state.incidentTimer) return;
+  if (!state.incidentTimer || state.incidentTimer.pureDisplay) return;
   state.incidentTimer.running = false;
   if (incidentInterval) {
     clearInterval(incidentInterval);
@@ -1791,26 +1800,39 @@ function resetIncidentTimer() {
 function changeIncidentTitle(newTitle) {
   if (!state.incidentTimer) return;
   state.incidentTimer.title = newTitle;
-  const isCountUp = (newTitle === "KNOCKDOWN");
-  state.incidentTimer.countUp = isCountUp;
+  const isPureDisplay = (newTitle === "VIDEO REVIEW" || newTitle === "REFEREE CONSULT");
+  state.incidentTimer.pureDisplay = isPureDisplay;
   state.incidentTimer.warned8s = false;
   state.incidentTimer.warned10s = false;
 
-  if (isCountUp) {
-    state.incidentTimer.duration = 10.0;
-    state.incidentTimer.currentTime = 0.0;
-    if (state.incidentTimer.running) {
-      state.incidentTimer.startTime = Date.now();
-      state.incidentTimer.endTime = null;
+  if (isPureDisplay) {
+    state.incidentTimer.running = false;
+    if (incidentInterval) {
+      clearInterval(incidentInterval);
+      incidentInterval = null;
     }
+    state.incidentTimer.startTime = null;
+    state.incidentTimer.endTime = null;
   } else {
-    if (state.incidentTimer.duration <= 10) {
-      state.incidentTimer.duration = 60;
-    }
-    state.incidentTimer.currentTime = state.incidentTimer.duration;
-    if (state.incidentTimer.running) {
-      state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
-      state.incidentTimer.startTime = null;
+    const isCountUp = (newTitle === "KNOCKDOWN");
+    state.incidentTimer.countUp = isCountUp;
+
+    if (isCountUp) {
+      state.incidentTimer.duration = 10.0;
+      state.incidentTimer.currentTime = 0.0;
+      if (state.incidentTimer.running) {
+        state.incidentTimer.startTime = Date.now();
+        state.incidentTimer.endTime = null;
+      }
+    } else {
+      if (state.incidentTimer.duration <= 10) {
+        state.incidentTimer.duration = 60;
+      }
+      state.incidentTimer.currentTime = state.incidentTimer.duration;
+      if (state.incidentTimer.running) {
+        state.incidentTimer.endTime = Date.now() + Math.round(state.incidentTimer.currentTime * 1000);
+        state.incidentTimer.startTime = null;
+      }
     }
   }
   state.timestamp = Date.now();
@@ -1823,9 +1845,28 @@ function triggerQuickIncident(title, seconds) {
   if (!state.incidentTimer) {
     state.incidentTimer = { active: true };
   }
+  state.incidentTimer.active = true;
   state.incidentTimer.title = title;
+  const isPureDisplay = (title === "VIDEO REVIEW" || title === "REFEREE CONSULT");
+  state.incidentTimer.pureDisplay = isPureDisplay;
+
+  if (isPureDisplay) {
+    state.incidentTimer.running = false;
+    if (incidentInterval) {
+      clearInterval(incidentInterval);
+      incidentInterval = null;
+    }
+    state.incidentTimer.startTime = null;
+    state.incidentTimer.endTime = null;
+    state.timestamp = Date.now();
+    renderIncidentTimerDOM();
+    renderControlDOM();
+    broadcastState();
+    return;
+  }
+
   state.incidentTimer.countUp = (title === "KNOCKDOWN");
-  setIncidentDuration(seconds);
+  setIncidentDuration(seconds || (title === "KNOCKDOWN" ? 10 : 60));
 }
 
 function renderIncidentTimerDOM() {
@@ -1847,34 +1888,68 @@ function renderIncidentTimerDOM() {
   
   if (!isIncidentActive) return;
   
+  const title = state.incidentTimer.title || "KNOCKDOWN";
+  const isPureDisplay = Boolean(state.incidentTimer.pureDisplay || title === "VIDEO REVIEW" || title === "REFEREE CONSULT");
   const isCountUp = Boolean(state.incidentTimer.countUp);
+
+  // Scoreboard Card DOM
+  const cardEl = document.querySelector(".sb-incident-card");
+  if (cardEl) {
+    cardEl.classList.toggle("pure-display", isPureDisplay);
+  }
+
   const titleEl = document.getElementById("sb-incident-title");
   if (titleEl) {
-    titleEl.textContent = state.incidentTimer.title || "KNOCKDOWN";
+    titleEl.textContent = title;
   }
   
   const timeEl = document.getElementById("sb-incident-time");
-  if (timeEl && !state.incidentTimer.running) {
-    timeEl.textContent = formatIncidentTime(state.incidentTimer.currentTime, isCountUp);
-    if (isCountUp) {
-      timeEl.classList.toggle("at-8s", state.incidentTimer.currentTime >= 8.0 && state.incidentTimer.currentTime < 10.0);
-      timeEl.classList.toggle("at-10s", state.incidentTimer.currentTime >= 10.0);
-      timeEl.classList.remove("warning-10s");
+  if (timeEl) {
+    if (isPureDisplay) {
+      timeEl.style.display = "none";
     } else {
-      timeEl.classList.toggle("warning-10s", state.incidentTimer.currentTime <= 10 && state.incidentTimer.currentTime > 0);
-      timeEl.classList.remove("at-8s", "at-10s");
+      timeEl.style.display = "block";
+      if (!state.incidentTimer.running) {
+        timeEl.textContent = formatIncidentTime(state.incidentTimer.currentTime, isCountUp);
+        if (isCountUp) {
+          timeEl.classList.toggle("at-8s", state.incidentTimer.currentTime >= 8.0 && state.incidentTimer.currentTime < 10.0);
+          timeEl.classList.toggle("at-10s", state.incidentTimer.currentTime >= 10.0);
+          timeEl.classList.remove("warning-10s");
+        } else {
+          timeEl.classList.toggle("warning-10s", state.incidentTimer.currentTime <= 10 && state.incidentTimer.currentTime > 0);
+          timeEl.classList.remove("at-8s", "at-10s");
+        }
+      }
     }
   }
   
+  // Control Bar DOM
   const cdDisplay = document.getElementById("ctrl-incident-countdown-display");
-  if (cdDisplay) {
-    cdDisplay.textContent = formatIncidentTime(state.incidentTimer.currentTime, isCountUp);
-  }
-  
+  const pureBadge = document.getElementById("ctrl-incident-pure-badge");
+  const presetsGroup = document.getElementById("ctrl-incident-presets-group");
   const playBtn = document.getElementById("btn-incident-toggle-play");
+  const resetBtn = document.getElementById("btn-incident-reset");
+
+  if (cdDisplay) {
+    cdDisplay.style.display = isPureDisplay ? "none" : "block";
+    if (!isPureDisplay) {
+      cdDisplay.textContent = formatIncidentTime(state.incidentTimer.currentTime, isCountUp);
+    }
+  }
+  if (pureBadge) {
+    pureBadge.style.display = isPureDisplay ? "inline-flex" : "none";
+  }
+  if (presetsGroup) {
+    const timeAdjustBtns = presetsGroup.querySelectorAll("button:not([onclick*='VIDEO']):not([onclick*='REFEREE']):not([onclick*='KNOCKDOWN']):not([onclick*='TIMEOUT'])");
+    timeAdjustBtns.forEach(b => b.style.display = isPureDisplay ? "none" : "inline-block");
+  }
   if (playBtn) {
+    playBtn.style.display = isPureDisplay ? "none" : "inline-block";
     playBtn.textContent = state.incidentTimer.running ? "PAUSE" : "START";
     playBtn.className = state.incidentTimer.running ? "btn-secondary btn-sm" : "btn-primary btn-sm";
+  }
+  if (resetBtn) {
+    resetBtn.style.display = isPureDisplay ? "none" : "inline-block";
   }
   
   const selectEl = document.getElementById("ctrl-incident-title-select");

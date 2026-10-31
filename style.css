@@ -1753,6 +1753,26 @@ input:focus, select:focus {
   text-align: center;
 }
 
+/* Pure display state (Video Review, Referee Consult) - No timer, bold status title */
+.sb-incident-card.pure-display {
+  padding: 3.2vh 4.5vw;
+  min-width: clamp(320px, 42vw, 620px);
+}
+
+.sb-incident-card.pure-display .sb-incident-title {
+  font-size: clamp(2.2rem, 5.2vh, 4.2rem);
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin-bottom: 0;
+  color: #ffffff;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.sb-incident-card.pure-display .sb-incident-time {
+  display: none !important;
+}
+
 .sb-incident-title {
   font-size: clamp(1.2rem, 2.5vh, 1.8rem);
   font-weight: 900;
@@ -1836,6 +1856,18 @@ input:focus, select:focus {
   font-weight: 900;
   color: #ffffff;
   font-family: monospace;
+}
+
+.ctrl-incident-pure-badge {
+  background: #1e3a8a;
+  border: 1px solid #3b82f6;
+  color: #93c5fd;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .ctrl-incident-controls {

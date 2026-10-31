@@ -266,26 +266,27 @@
             <span class="ctrl-incident-tag">KNOCKDOWN</span>
             <select id="ctrl-incident-title-select" class="ctrl-incident-select" onchange="changeIncidentTitle(this.value)">
               <option value="KNOCKDOWN" selected>KNOCKDOWN (擊倒正數讀秒 10s)</option>
-              <option value="TIMEOUT">TIMEOUT (暫停)</option>
-              <option value="MEDICAL TIMEOUT">MEDICAL (醫療暫停)</option>
-              <option value="VIDEO REVIEW">VIDEO REVIEW (錄影審查)</option>
-              <option value="REFEREE CONSULT">REFEREE CONSULT (裁判研商)</option>
+              <option value="TIMEOUT">TIMEOUT (暫停計時)</option>
+              <option value="VIDEO REVIEW">VIDEO REVIEW (錄影審查 - 純顯示)</option>
+              <option value="REFEREE CONSULT">REFEREE CONSULT (裁判研商 - 純顯示)</option>
             </select>
           </div>
           <div id="ctrl-incident-countdown-display" class="ctrl-incident-countdown">0.0</div>
+          <div id="ctrl-incident-pure-badge" class="ctrl-incident-pure-badge" style="display: none;">純狀態顯示 (NO TIMER)</div>
         </div>
         <div class="ctrl-incident-controls">
-          <div class="ctrl-incident-presets">
+          <div class="ctrl-incident-presets" id="ctrl-incident-presets-group">
             <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('KNOCKDOWN', 10)">KNOCKDOWN (10s 正數)</button>
             <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('TIMEOUT', 60)">TIMEOUT (1:00)</button>
-            <button type="button" class="btn-secondary btn-sm" onclick="setIncidentDuration(30)">0:30</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('VIDEO REVIEW')">VIDEO REVIEW</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="triggerQuickIncident('REFEREE CONSULT')">REFEREE CONSULT</button>
             <button type="button" class="btn-secondary btn-sm" onclick="adjustIncidentTime(1)">+1s</button>
             <button type="button" class="btn-secondary btn-sm" onclick="adjustIncidentTime(-1)">-1s</button>
           </div>
           <div class="ctrl-incident-actions">
             <button type="button" id="btn-incident-toggle-play" class="btn-primary btn-sm" onclick="toggleIncidentTimer()">START</button>
-            <button type="button" class="btn-secondary btn-sm" onclick="resetIncidentTimer()">RESET</button>
-            <button type="button" class="btn-secondary btn-sm" style="background-color: #ef4444;" onclick="closeIncidentTimer()">關閉計時 (Close)</button>
+            <button type="button" id="btn-incident-reset" class="btn-secondary btn-sm" onclick="resetIncidentTimer()">RESET</button>
+            <button type="button" class="btn-secondary btn-sm" style="background-color: #ef4444;" onclick="closeIncidentTimer()">關閉 (Close)</button>
           </div>
         </div>
       </section>
