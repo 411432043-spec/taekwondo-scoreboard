@@ -44,10 +44,18 @@ let state = {
   timestamp: 0,
   
   roundScores: [
-    { blue: null, red: null, winner: null },
-    { blue: null, red: null, winner: null },
-    { blue: null, red: null, winner: null }
+    { blue: null, red: null, winner: null, code: null },
+    { blue: null, red: null, winner: null, code: null },
+    { blue: null, red: null, winner: null, code: null }
   ],
+  
+  // Early termination rules (WT: PTG, PUN, RSC, WDR, DSQ)
+  ptgGap: 12, // 12-point difference in a round triggers Point Gap win
+  autoPtg: true, // auto-detect 12-point lead
+  autoPun: true, // auto-detect max gam-jeom punitive declaration
+  earlyTerminationNotice: null, // active announcement card
+  matchWinner: null,
+  matchResultCode: null,
   
   consensusWindow: 1.0, // seconds
   minConsensusJudges: 1, // default to 1 for instant single-tester feedback (can be switched to 2 in control panel)
@@ -635,6 +643,35 @@ function renderScoreboardDOM() {
     updateTimerDisplay(state.currentTime);
   }
   renderIncidentTimerDOM();
+
+  // Early Termination / Winner Overlay on Public Scoreboard
+  const earlyOverlay = document.getElementById("sb-early-overlay");
+  const earlyCard = document.getElementById("sb-early-card");
+  const earlyBadge = document.getElementById("sb-early-badge");
+  const earlyTitle = document.getElementById("sb-early-title");
+  const earlyWinner = document.getElementById("sb-early-winner");
+  const earlySub = document.getElementById("sb-early-sub");
+
+  if (state.earlyTerminationNotice) {
+    const notice = state.earlyTerminationNotice;
+    const winnerColor = notice.winner;
+    const winnerDisplayName = state[`${winnerColor}Name`] || (winnerColor === "blue" ? "藍方" : "紅方");
+    
+    if (earlyOverlay) earlyOverlay.style.display = "block";
+    if (earlyCard) {
+      earlyCard.className = `sb-early-card winner-${winnerColor}`;
+    }
+    if (earlyBadge) earlyBadge.textContent = notice.code || "WIN";
+    if (earlyTitle) earlyTitle.textContent = notice.label || "EARLY TERMINATION";
+    if (earlyWinner) earlyWinner.textContent = `${winnerDisplayName} (${winnerColor.toUpperCase()}) WINNER`;
+    if (earlySub) {
+      earlySub.textContent = (notice.scope === "match" || state.matchOver) 
+        ? "MATCH OVER" 
+        : `ROUND ${notice.round || state.currentRound} WIN`;
+    }
+  } else {
+    if (earlyOverlay) earlyOverlay.style.display = "none";
+  }
 }
 
 function renderRoundHistoryDOM() {
@@ -643,23 +680,32 @@ function renderRoundHistoryDOM() {
   for (let r = 1; r <= 3; r++) {
     const entry = roundScores[r - 1];
     const hasPlayed = Boolean(entry && entry.blue !== null && entry.red !== null);
+    const codeTag = (hasPlayed && entry.code) ? ` [${entry.code}]` : "";
     
     // Blue Side (Standard stat-box: score or --)
     const blueScore = document.getElementById(`sb-blue-r${r}-score`);
     if (blueScore) {
-      blueScore.textContent = hasPlayed ? entry.blue : "--";
+      if (hasPlayed) {
+        blueScore.textContent = (entry.code && entry.winner === "blue") ? `${entry.blue} (${entry.code})` : entry.blue;
+      } else {
+        blueScore.textContent = "--";
+      }
     }
 
     // Red Side (Standard stat-box: score or --)
     const redScore = document.getElementById(`sb-red-r${r}-score`);
     if (redScore) {
-      redScore.textContent = hasPlayed ? entry.red : "--";
+      if (hasPlayed) {
+        redScore.textContent = (entry.code && entry.winner === "red") ? `${entry.red} (${entry.code})` : entry.red;
+      } else {
+        redScore.textContent = "--";
+      }
     }
 
     // Control Panel Summary (if exists)
     const ctrlHistory = document.getElementById(`ctrl-history-r${r}`);
     if (ctrlHistory) {
-      ctrlHistory.textContent = hasPlayed ? `${entry.blue} : ${entry.red}` : "-- : --";
+      ctrlHistory.textContent = hasPlayed ? `${entry.blue} : ${entry.red}${codeTag}` : "-- : --";
       if (hasPlayed && entry.winner === "blue") {
         ctrlHistory.style.color = "#60a5fa";
       } else if (hasPlayed && entry.winner === "red") {
@@ -1852,6 +1898,216 @@ window.resetIncidentTimer = resetIncidentTimer;
 window.changeIncidentTitle = changeIncidentTitle;
 window.triggerQuickIncident = triggerQuickIncident;
 
+// ==========================================================================
+// Early Termination & Decision Codes (提早結束 / 判定代號: RSC, PTG, WDR, PUN, DSQ)
+// ==========================================================================
+let currentEarlyCode = "RSC";
+
+function openEarlyEndModal(code) {
+  currentEarlyCode = code || "RSC";
+  const modal = document.getElementById("ctrl-early-modal");
+  const title = document.getElementById("early-modal-title");
+  const desc = document.getElementById("early-modal-desc");
+  const blueName = document.getElementById("early-blue-name");
+  const redName = document.getElementById("early-red-name");
+  const scopeRound = document.getElementById("scope-round");
+  const scopeMatch = document.getElementById("scope-match");
+
+  const meta = {
+    RSC: { title: "提早結束裁決：RSC (Referee Stops Contest)", desc: "主審判定停止比賽（擊倒讀秒未起、實力差距過大、受傷無法繼續等）", defaultScope: "match" },
+    PTG: { title: "提早結束裁決：PTG (Win by Point Gap)", desc: "12分分差勝（回合分差達12分以上，系統平時會自動偵測，亦可手動裁決）", defaultScope: "round" },
+    WDR: { title: "提早結束裁決：WDR (Win by Withdrawal)", desc: "棄權勝（選手或教練主動棄權、拋毛巾棄賽）", defaultScope: "match" },
+    PUN: { title: "提早結束裁決：PUN (Win by Punitive Declaration)", desc: "滿犯規判罰勝（選手累積滿5次警告，系統平時會自動偵測，亦可手動裁決）", defaultScope: "round" },
+    DSQ: { title: "提早結束裁決：DSQ (Win by Disqualification)", desc: "失格勝（過磅未過、嚴重違反運動家精神或嚴重違規失格）", defaultScope: "match" }
+  };
+
+  const item = meta[currentEarlyCode] || { title: `提早結束裁決：${currentEarlyCode}`, desc: "", defaultScope: "match" };
+  if (title) title.textContent = item.title;
+  if (desc) desc.textContent = item.desc;
+  if (blueName) blueName.textContent = state.blueName ? `${state.blueName} (BLUE)` : "藍方 (BLUE WIN)";
+  if (redName) redName.textContent = state.redName ? `${state.redName} (RED)` : "紅方 (RED WIN)";
+
+  if (item.defaultScope === "round") {
+    if (scopeRound) scopeRound.checked = true;
+  } else {
+    if (scopeMatch) scopeMatch.checked = true;
+  }
+
+  if (modal) modal.style.display = "flex";
+}
+
+function closeEarlyEndModal() {
+  const modal = document.getElementById("ctrl-early-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function confirmEarlyEnd(winnerColor) {
+  const scope = (document.getElementById("scope-round") && document.getElementById("scope-round").checked) ? "round" : "match";
+  closeEarlyEndModal();
+  triggerEarlyTermination(winnerColor, currentEarlyCode, scope);
+}
+
+function dismissEarlyTerminationNotice() {
+  state.earlyTerminationNotice = null;
+  state.timestamp = Date.now();
+  renderControlDOM();
+  renderScoreboardDOM();
+  broadcastState();
+}
+
+function triggerEarlyTermination(winnerColor, code, scope = "round") {
+  // If timer is running, stop it
+  if (state.timerRunning) {
+    state.timerRunning = false;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    state.timerEndTime = null;
+  }
+  
+  // If incident countdown is running, stop it
+  if (state.incidentTimer && state.incidentTimer.running) {
+    state.incidentTimer.running = false;
+    if (incidentInterval) {
+      clearInterval(incidentInterval);
+      incidentInterval = null;
+    }
+  }
+
+  const winnerName = state[`${winnerColor}Name`] || (winnerColor === "blue" ? "藍方" : "紅方");
+  const loserColor = winnerColor === "blue" ? "red" : "blue";
+  const loserName = state[`${loserColor}Name`] || (loserColor === "blue" ? "藍方" : "紅方");
+  
+  broadcastSound("buzzer");
+
+  const codeLabels = {
+    PTG: "分差勝 (Point Gap)",
+    PUN: "判罰勝 (Punitive Declaration)",
+    RSC: "主審終止 (Referee Stops Contest)",
+    WDR: "棄權勝 (Withdrawal)",
+    DSQ: "失格勝 (Disqualification)"
+  };
+  const label = codeLabels[code] || code;
+
+  // Decide if this scope ends the match directly
+  const endsMatch = (scope === "match") || (code === "RSC" || code === "WDR" || code === "DSQ") || (state.scoringMode === "totalScore");
+  
+  const rIdx = state.currentRound - 1;
+  if (!state.roundScores) {
+    state.roundScores = [
+      { blue: null, red: null, winner: null, code: null },
+      { blue: null, red: null, winner: null, code: null },
+      { blue: null, red: null, winner: null, code: null }
+    ];
+  }
+
+  if (endsMatch) {
+    // Ends entire match immediately
+    state[`${winnerColor}Wins`]++;
+    state.matchOver = true;
+    state.matchWinner = winnerColor;
+    state.matchResultCode = code;
+    state.isRest = true;
+    state.currentTime = 0;
+    
+    state.roundScores[rIdx] = {
+      blue: state.blueScore,
+      red: state.redScore,
+      winner: winnerColor,
+      code: code
+    };
+    
+    logEvent(`[${code}] ${winnerName} (${winnerColor.toUpperCase()}) 榮獲整場比賽勝利！裁決：${label}`);
+  } else {
+    // Ends current round (PTG, PUN, or manual round end)
+    state[`${winnerColor}Wins`]++;
+    state.roundScores[rIdx] = {
+      blue: state.blueScore,
+      red: state.redScore,
+      winner: winnerColor,
+      code: code
+    };
+    
+    logEvent(`[${code}] 第 ${state.currentRound} 局結束，${winnerName} (${winnerColor.toUpperCase()}) 獲勝！裁決：${label} [比分 ${state.blueScore}:${state.redScore}]`);
+    
+    // Check if match won in Best of 3
+    if (state.scoringMode === "bestOf3" && (state.blueWins >= 2 || state.redWins >= 2)) {
+      state.matchOver = true;
+      state.matchWinner = state.blueWins >= 2 ? "blue" : "red";
+      state.matchResultCode = code;
+      state.isRest = true;
+      state.currentTime = 0;
+      const finalWinnerName = state[`${state.matchWinner}Name`] || (state.matchWinner === "blue" ? "藍方" : "紅方");
+      logEvent(`[MATCH OVER] ${finalWinnerName} 贏得 2 局，獲得最終勝利！(裁決: ${code})`);
+    } else {
+      // Transition to rest
+      state.isRest = true;
+      state.currentTime = state.restDuration;
+    }
+  }
+
+  state.earlyTerminationNotice = {
+    winner: winnerColor,
+    code: code,
+    label: label,
+    round: state.currentRound,
+    scope: endsMatch ? "match" : "round",
+    timestamp: Date.now()
+  };
+
+  state.timestamp = Date.now();
+  renderControlDOM();
+  renderScoreboardDOM();
+  broadcastState();
+}
+
+function checkAutoEarlyTermination() {
+  if (state.matchOver || state.isRest || (state.deviceTest && state.deviceTest.active)) {
+    return false;
+  }
+  
+  // 1. PUN (Punitive Declaration): Max Gam-jeoms reached in a round
+  const maxGamjeoms = state.maxGamjeoms || 5;
+  const autoPun = state.autoPun !== false;
+  if (autoPun) {
+    if (state.blueGamjeom >= maxGamjeoms) {
+      logEvent(`[AUTO PUN] 藍方累積滿 ${maxGamjeoms} 次警告，紅方判罰勝 (PUN)!`);
+      triggerEarlyTermination("red", "PUN", "round");
+      return true;
+    } else if (state.redGamjeom >= maxGamjeoms) {
+      logEvent(`[AUTO PUN] 紅方累積滿 ${maxGamjeoms} 次警告，藍方判罰勝 (PUN)!`);
+      triggerEarlyTermination("blue", "PUN", "round");
+      return true;
+    }
+  }
+
+  // 2. PTG (Point Gap): 12-point difference in a round
+  const ptgGap = state.ptgGap || 12;
+  const autoPtg = state.autoPtg !== false;
+  if (autoPtg) {
+    const diff = state.blueScore - state.redScore;
+    if (diff >= ptgGap) {
+      logEvent(`[AUTO PTG] 藍方達到 ${ptgGap} 分分差領先 (${state.blueScore}:${state.redScore})，藍方分差勝 (PTG)!`);
+      triggerEarlyTermination("blue", "PTG", "round");
+      return true;
+    } else if (diff <= -ptgGap) {
+      logEvent(`[AUTO PTG] 紅方達到 ${ptgGap} 分分差領先 (${state.redScore}:${state.blueScore})，紅方分差勝 (PTG)!`);
+      triggerEarlyTermination("red", "PTG", "round");
+      return true;
+    }
+  }
+
+  return false;
+}
+
+window.openEarlyEndModal = openEarlyEndModal;
+window.closeEarlyEndModal = closeEarlyEndModal;
+window.confirmEarlyEnd = confirmEarlyEnd;
+window.dismissEarlyTerminationNotice = dismissEarlyTerminationNotice;
+window.triggerEarlyTermination = triggerEarlyTermination;
+window.checkAutoEarlyTermination = checkAutoEarlyTermination;
+
 function updateSuperiorityLead() {
   // WT Competition Rules (Article 15 - Decision of Superiority):
   // 1. Most points / count scored by turning kicks (4pt & 5pt)
@@ -1998,6 +2254,7 @@ function checkConsensus(judgeIndex, color, points) {
     
     logEvent(`Consensus Reached (${color.toUpperCase()} ${pointDesc}) by Judges [${matchingJudges.join(',')}]. Awarded +${points} points!`);
     broadcastSound("point");
+    checkAutoEarlyTermination();
   }
 }
 
@@ -2094,6 +2351,7 @@ function handlePeriodEnd() {
   if (state.isRest) {
     // Rest ended, prepare next round
     state.isRest = false;
+    state.earlyTerminationNotice = null;
     state.currentRound++;
     state.currentTime = state.roundDuration;
     state.tenSecWarned = false;
@@ -2244,6 +2502,15 @@ function applySettings(e) {
   state.roundDuration = parseInt(document.getElementById("cfg-round-duration").value);
   state.restDuration = parseInt(document.getElementById("cfg-rest-duration").value);
   
+  const maxGamjeomsEl = document.getElementById("cfg-max-gamjeoms");
+  if (maxGamjeomsEl) state.maxGamjeoms = parseInt(maxGamjeomsEl.value) || 5;
+  const ptgGapEl = document.getElementById("cfg-ptg-gap");
+  if (ptgGapEl) state.ptgGap = parseInt(ptgGapEl.value) || 12;
+  const autoPtgEl = document.getElementById("cfg-auto-ptg");
+  if (autoPtgEl) state.autoPtg = autoPtgEl.checked;
+  const autoPunEl = document.getElementById("cfg-auto-pun");
+  if (autoPunEl) state.autoPun = autoPunEl.checked;
+  
   const consensusWinEl = document.getElementById("cfg-consensus-window");
   if (consensusWinEl) state.consensusWindow = parseFloat(consensusWinEl.value);
   const minJudgesEl = document.getElementById("cfg-min-judges");
@@ -2306,10 +2573,13 @@ function resetMatchFully() {
     state.blueJudgeHistory = [];
     state.redJudgeHistory = [];
     state.roundScores = [
-      { blue: null, red: null, winner: null },
-      { blue: null, red: null, winner: null },
-      { blue: null, red: null, winner: null }
+      { blue: null, red: null, winner: null, code: null },
+      { blue: null, red: null, winner: null, code: null },
+      { blue: null, red: null, winner: null, code: null }
     ];
+    state.earlyTerminationNotice = null;
+    state.matchWinner = null;
+    state.matchResultCode = null;
     if (state.timerRunning) {
       state.timerRunning = false;
       if (timerInterval) {
@@ -2379,6 +2649,7 @@ function forceEndPeriod() {
   if (state.isRest) {
     // Skip Rest and start next round
     state.isRest = false;
+    state.earlyTerminationNotice = null;
     state.currentRound++;
     state.currentTime = state.roundDuration;
     state.blueJudgeHistory = [];
@@ -2447,6 +2718,13 @@ function syncControlForm() {
 
   const autoTestEl = document.getElementById("cfg-auto-device-test");
   if (autoTestEl) autoTestEl.checked = state.autoDeviceTest !== false;
+
+  const ptgGapEl = document.getElementById("cfg-ptg-gap");
+  if (ptgGapEl) ptgGapEl.value = state.ptgGap || 12;
+  const autoPtgEl = document.getElementById("cfg-auto-ptg");
+  if (autoPtgEl) autoPtgEl.checked = state.autoPtg !== false;
+  const autoPunEl = document.getElementById("cfg-auto-pun");
+  if (autoPunEl) autoPunEl.checked = state.autoPun !== false;
 }
 
 function renderControlDOM() {
@@ -2513,6 +2791,24 @@ function renderControlDOM() {
   // Render Sub-Round breakdown in Control Panel as well
   renderRoundHistoryDOM();
   renderIncidentTimerDOM();
+
+  // Early termination notice bar in control panel
+  const noticeBar = document.getElementById("ctrl-early-notice-bar");
+  const noticeBadge = document.getElementById("ctrl-early-notice-badge");
+  const noticeText = document.getElementById("ctrl-early-notice-text");
+
+  if (state.earlyTerminationNotice) {
+    const notice = state.earlyTerminationNotice;
+    const winnerColor = notice.winner;
+    const winnerDisplayName = state[`${winnerColor}Name`] || (winnerColor === "blue" ? "藍方" : "紅方");
+    if (noticeBar) noticeBar.style.display = "flex";
+    if (noticeBadge) noticeBadge.textContent = notice.code || "WIN";
+    if (noticeText) {
+      noticeText.textContent = `${winnerDisplayName} (${winnerColor.toUpperCase()}) ${notice.label} - ${notice.scope === "match" || state.matchOver ? "整場比賽獲勝" : `第 ${notice.round || state.currentRound} 局勝出`}`;
+    }
+  } else {
+    if (noticeBar) noticeBar.style.display = "none";
+  }
 }
 
 function setupAdjustmentButtons() {
@@ -2534,24 +2830,25 @@ function setupAdjustmentButtons() {
             
             logEvent(`Gam-jeom penalty to ${color.toUpperCase()}. Opponent ${opponent.toUpperCase()} +1 point. Total Gam-jeom: ${state[`${color}Gamjeom`]}`);
             broadcastSound("gamjeom");
-            
-            // Reaching maximum Gam-jeoms in a round triggers automatic round loss
-            if (state[`${color}Gamjeom`] >= state.maxGamjeoms && state.scoringMode === "bestOf3") {
-              logEvent(`${color.toUpperCase()} reached ${state.maxGamjeoms} Gam-jeoms! Lost round.`);
-              alert(`${color.toUpperCase()} reached ${state.maxGamjeoms} Gam-jeoms! Opponent wins this round.`);
-              roundEndedByPenalty = opponent;
-              forceEndPeriod(); // Automatically transitions to rest
-            }
+            updateSuperiorityLead();
+            renderControlDOM();
+            broadcastState();
+            checkAutoEarlyTermination();
+            return;
           } else {
             state[`${color}${capitalizeFirst(stat)}`]++;
             logEvent(`Manual adjust: ${color.toUpperCase()} ${stat} +1`);
             if (stat === "wins") {
               state.matchOver = state.scoringMode === "bestOf3" && (state.blueWins >= 2 || state.redWins >= 2);
             }
+            updateSuperiorityLead();
+            renderControlDOM();
+            broadcastState();
+            if (stat === "score") {
+              checkAutoEarlyTermination();
+            }
+            return;
           }
-          updateSuperiorityLead();
-          renderControlDOM();
-          broadcastState();
         };
       }
       

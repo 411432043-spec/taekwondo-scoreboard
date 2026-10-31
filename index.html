@@ -96,8 +96,25 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="cfg-max-gamjeoms">局犯規上限 (次)</label>
+            <label for="cfg-max-gamjeoms">局犯規上限 (次) [PUN 門檻]</label>
             <input type="number" id="cfg-max-gamjeoms" value="5" min="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-ptg-gap">PTG 分差上限 (分)</label>
+            <input type="number" id="cfg-ptg-gap" value="12" min="1">
+          </div>
+          <div class="form-group" style="display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="cfg-auto-ptg" checked style="width: 15px; height: 15px; cursor: pointer;">
+              <label for="cfg-auto-ptg" style="font-size: 0.75rem; color: #38bdf8; cursor: pointer; margin: 0; user-select: none;">自動 PTG 分差偵測 (12分)</label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="cfg-auto-pun" checked style="width: 15px; height: 15px; cursor: pointer;">
+              <label for="cfg-auto-pun" style="font-size: 0.75rem; color: #f43f5e; cursor: pointer; margin: 0; user-select: none;">自動 PUN 滿犯規偵測 (5次)</label>
+            </div>
           </div>
         </div>
 
@@ -271,6 +288,47 @@
             <button type="button" class="btn-secondary btn-sm" style="background-color: #ef4444;" onclick="closeIncidentTimer()">關閉計時 (Close)</button>
           </div>
         </div>
+      </section>
+
+      <!-- Early Termination / Decisions Control Bar (提早結束代號) -->
+      <section class="ctrl-early-end-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.85rem; font-weight: 800; color: #f8fafc; letter-spacing: 0.5px;">提早結束代號 (EARLY END)</span>
+            <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; background: #1e293b; color: #38bdf8; border: 1px solid #0284c7; font-weight: 700;">PTG (12分) / PUN (滿犯規) 自動偵測中</span>
+          </div>
+        </div>
+        <div class="ctrl-early-btn-grid">
+          <button type="button" class="btn-early-code btn-rsc" onclick="openEarlyEndModal('RSC')" title="Referee Stops Contest (主審停止比賽)">
+            <span class="code-title">RSC</span>
+            <span class="code-sub">主審終止</span>
+          </button>
+          <button type="button" class="btn-early-code btn-ptg" onclick="openEarlyEndModal('PTG')" title="Point Gap 12-point lead (分差勝 - 自動偵測)">
+            <span class="code-title">PTG</span>
+            <span class="code-sub">12分分差</span>
+          </button>
+          <button type="button" class="btn-early-code btn-wdr" onclick="openEarlyEndModal('WDR')" title="Withdrawal / Forfeit (棄權勝)">
+            <span class="code-title">WDR</span>
+            <span class="code-sub">棄權勝</span>
+          </button>
+          <button type="button" class="btn-early-code btn-pun" onclick="openEarlyEndModal('PUN')" title="Punitive Declaration / Max Gam-jeom (滿犯規判罰勝 - 自動偵測)">
+            <span class="code-title">PUN</span>
+            <span class="code-sub">判罰勝</span>
+          </button>
+          <button type="button" class="btn-early-code btn-dsq" onclick="openEarlyEndModal('DSQ')" title="Disqualification (犯規失格勝)">
+            <span class="code-title">DSQ</span>
+            <span class="code-sub">失格勝</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Active Early Termination Notice Bar in Operator Panel -->
+      <section id="ctrl-early-notice-bar" class="ctrl-early-notice-bar" style="display: none; margin: 0.6rem 0; padding: 10px 14px; background: #1e1b4b; border: 1px solid #6366f1; border-radius: 8px; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="ctrl-early-notice-badge" style="font-size: 0.9rem; font-weight: 900; padding: 3px 8px; border-radius: 4px; background: #6366f1; color: white;">PTG</span>
+          <span id="ctrl-early-notice-text" style="font-size: 0.95rem; font-weight: 800; color: #ffffff;">藍方 12 分差勝 (PTG)</span>
+        </div>
+        <button type="button" class="btn-secondary btn-sm" onclick="dismissEarlyTerminationNotice()" style="font-size: 0.75rem; padding: 4px 10px;">✕ 清除提示 (Dismiss)</button>
       </section>
 
       <!-- Sub-Round Score History Summary in Operator Panel -->
@@ -711,6 +769,16 @@
       </div>
     </div>
 
+    <!-- Early Termination / Winner Announcement Overlay -->
+    <div id="sb-early-overlay" class="sb-early-overlay" style="display: none;">
+      <div class="sb-early-card" id="sb-early-card">
+        <div id="sb-early-badge" class="sb-early-badge">PTG</div>
+        <div id="sb-early-title" class="sb-early-title">分差勝 (POINT GAP)</div>
+        <div id="sb-early-winner" class="sb-early-winner">BLUE WINNER</div>
+        <div id="sb-early-sub" class="sb-early-sub">ROUND 1 WIN</div>
+      </div>
+    </div>
+
     <!-- Main Scoring display grid -->
     <div class="sb-main-grid">
       
@@ -869,6 +937,50 @@
     </div>
     <div class="split-pane">
       <iframe id="split-scoreboard-pane" class="split-iframe" src="about:blank"></iframe>
+    </div>
+  </div>
+
+  <!-- Early Termination Modal Dialog -->
+  <div id="ctrl-early-modal" class="ctrl-modal-overlay" style="display: none;">
+    <div class="ctrl-modal-box">
+      <div class="ctrl-modal-header">
+        <h3 id="early-modal-title">提早結束裁決：RSC</h3>
+        <button type="button" class="ctrl-modal-close" onclick="closeEarlyEndModal()">✕</button>
+      </div>
+      <div class="ctrl-modal-body">
+        <div id="early-modal-desc" style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.4;">
+          主審停止比賽 (Referee Stops Contest)
+        </div>
+
+        <div style="margin-bottom: 1.2rem; background: #0f172a; padding: 10px 12px; border-radius: 6px; border: 1px solid #334155;">
+          <label style="font-size: 0.82rem; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 6px;">適用勝出範圍 (Scope)：</label>
+          <div style="display: flex; gap: 16px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc; font-size: 0.85rem; font-weight: 600;">
+              <input type="radio" name="early-scope" id="scope-round" value="round">
+              本局勝出 (Round Win)
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc; font-size: 0.85rem; font-weight: 600;">
+              <input type="radio" name="early-scope" id="scope-match" value="match" checked>
+              整場比賽獲勝 (Match Win)
+            </label>
+          </div>
+        </div>
+
+        <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 800; display: block; margin-bottom: 8px;">請選擇獲勝方 (Select Winning Contestant)：</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button type="button" id="btn-early-blue-win" class="btn-early-winner blue" onclick="confirmEarlyEnd('blue')">
+            <span style="font-size: 1.2rem; font-weight: 900;">藍方獲勝</span>
+            <span id="early-blue-name" style="font-size: 0.82rem; opacity: 0.9; margin-top: 2px;">BLUE WIN</span>
+          </button>
+          <button type="button" id="btn-early-red-win" class="btn-early-winner red" onclick="confirmEarlyEnd('red')">
+            <span style="font-size: 1.2rem; font-weight: 900;">紅方獲勝</span>
+            <span id="early-red-name" style="font-size: 0.82rem; opacity: 0.9; margin-top: 2px;">RED WIN</span>
+          </button>
+        </div>
+      </div>
+      <div class="ctrl-modal-footer">
+        <button type="button" class="btn-secondary btn-sm" onclick="closeEarlyEndModal()">取消 (Cancel)</button>
+      </div>
     </div>
   </div>
 
