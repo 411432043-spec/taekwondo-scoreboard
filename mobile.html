@@ -50,44 +50,86 @@
       align-items: center;
       flex-grow: 1;
       text-align: center;
+      padding: 10px;
     }
 
     .title {
       font-size: 1.8rem;
       font-weight: 800;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
       color: #60a5fa;
     }
 
     .subtitle {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--text-muted);
-      margin-bottom: 2rem;
+      margin-bottom: 1.6rem;
     }
 
     .judge-options {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 14px;
       width: 100%;
-      max-width: 300px;
+      max-width: 320px;
     }
 
     .btn-judge {
       background-color: var(--card-bg);
       border: 2px solid #334155;
       color: var(--text-main);
-      padding: 20px;
-      font-size: 1.2rem;
+      padding: 18px;
+      font-size: 1.15rem;
       font-weight: 700;
       border-radius: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
     }
 
-    .btn-judge:active {
+    .btn-judge:active, .btn-judge.pressed {
       background-color: #334155;
-      transform: scale(0.98);
+      transform: scale(0.96);
+      border-color: #60a5fa;
+    }
+
+    /* Feedback test card in setup screen */
+    .feedback-test-box {
+      margin-top: 1.6rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .btn-test-haptic {
+      width: 100%;
+      background: #1e293b;
+      border: 1.5px dashed #38bdf8;
+      color: #38bdf8;
+      font-size: 0.95rem;
+      font-weight: 800;
+      padding: 13px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .btn-test-haptic:active, .btn-test-haptic.pressed {
+      background: #0284c7;
+      color: #ffffff;
+      transform: scale(0.96);
+    }
+
+    .haptic-support-msg {
+      font-size: 0.8rem;
+      line-height: 1.4;
+      text-align: center;
+      color: #94a3b8;
+      min-height: 22px;
     }
 
     /* Scoring Pad View */
@@ -102,27 +144,63 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
       border-bottom: 1px solid #334155;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       height: 40px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .judge-badge {
       background-color: #3b82f6;
-      padding: 2px 10px;
+      padding: 3px 10px;
       border-radius: 20px;
       font-weight: 800;
       font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-tool-pill {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .btn-tool-pill.active {
+      background: #065f46;
+      border-color: #10b981;
+      color: #6ee7b7;
     }
 
     .btn-change-role {
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-decoration: underline;
       cursor: pointer;
+      padding: 2px 4px;
     }
 
     .pad-container {
@@ -146,7 +224,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: rgba(15, 23, 42, 0.9);
+      background-color: rgba(15, 23, 42, 0.92);
       border: 1px solid #475569;
       color: #e2e8f0;
       padding: 3px 10px;
@@ -165,6 +243,7 @@
       color: #fef08a;
     }
 
+    /* Score button: 0ms instant touch feedback via .pressed class */
     .score-btn {
       flex: 1;
       border: none;
@@ -178,32 +257,36 @@
       align-items: center;
       cursor: pointer;
       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-      transition: transform 0.05s ease;
+      transition: transform 0.04s ease, filter 0.04s ease, box-shadow 0.04s ease;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      will-change: transform;
+      will-change: transform, filter;
       position: relative;
       line-height: 1.1;
     }
 
     .score-btn.turning {
-      border: 2px solid rgba(245, 158, 11, 0.75);
+      border: 2px solid rgba(245, 158, 11, 0.85);
     }
 
     .score-btn.blue {
       background-color: var(--blue-color);
     }
-    .score-btn.blue:active {
+    .score-btn.blue:active, .score-btn.blue.pressed {
       background-color: var(--blue-hover);
-      transform: scale(0.96);
+      transform: scale(0.93);
+      filter: brightness(1.25);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.9), inset 0 0 10px rgba(255, 255, 255, 0.5);
     }
 
     .score-btn.red {
       background-color: var(--red-color);
     }
-    .score-btn.red:active {
+    .score-btn.red:active, .score-btn.red.pressed {
       background-color: var(--red-hover);
-      transform: scale(0.96);
+      transform: scale(0.93);
+      filter: brightness(1.25);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.9), inset 0 0 10px rgba(255, 255, 255, 0.5);
     }
 
     .score-btn-sub {
@@ -216,24 +299,26 @@
 
     .status-toast {
       position: absolute;
-      bottom: 20px;
+      top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: rgba(0, 0, 0, 0.85);
-      color: #10b981;
-      padding: 6px 16px;
+      background-color: rgba(15, 23, 42, 0.95);
+      color: #34d399;
+      padding: 6px 18px;
       border-radius: 30px;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.82rem;
+      font-weight: 800;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.15s ease, transform 0.15s ease;
       border: 1px solid #10b981;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
       z-index: 100;
     }
 
     .status-toast.show {
       opacity: 1;
+      transform: translateX(-50%) translateY(4px);
     }
   </style>
 </head>
@@ -244,28 +329,42 @@
     <div class="title">跆拳道裁判評分系統</div>
     <div class="subtitle">請選擇您的裁判席位 (Role)</div>
     <div class="judge-options">
-      <button class="btn-judge" onclick="selectJudge(1)">裁判一席 (Judge 1)</button>
-      <button class="btn-judge" onclick="selectJudge(2)">裁判二席 (Judge 2)</button>
-      <button class="btn-judge" onclick="selectJudge(3)">裁判三席 (Judge 3)</button>
+      <button type="button" class="btn-judge" onclick="selectJudge(1)">裁判一席 (Judge 1)</button>
+      <button type="button" class="btn-judge" onclick="selectJudge(2)">裁判二席 (Judge 2)</button>
+      <button type="button" class="btn-judge" onclick="selectJudge(3)">裁判三席 (Judge 3)</button>
+    </div>
+
+    <!-- Vibration & Haptic Test Box -->
+    <div class="feedback-test-box">
+      <button type="button" class="btn-test-haptic" onclick="testFeedback()">
+        📳 測試按鍵震動與點擊回饋 (Test)
+      </button>
+      <div id="haptic-support-msg" class="haptic-support-msg"></div>
     </div>
   </div>
 
   <!-- 2. Scoring Pad Screen -->
   <div id="screen-scoring" class="scoring-screen">
     <div class="header-bar">
-      <div id="judge-title" class="judge-badge">裁判一 (J1)</div>
-      <button class="btn-change-role" onclick="resetRole()">重選席位</button>
+      <div class="header-left">
+        <div id="judge-title" class="judge-badge">裁判一 (J1)</div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="btn-toggle-haptic" class="btn-tool-pill active" onclick="toggleHapticSetting()">📳 震動: 開</button>
+        <button type="button" id="btn-toggle-sound" class="btn-tool-pill active" onclick="toggleSoundSetting()">🔊 聲音: 開</button>
+        <button type="button" class="btn-change-role" onclick="resetRole()">重選席位</button>
+      </div>
     </div>
     
     <div class="pad-container">
       <!-- Row 1: 1 Point (Punch) -->
       <div class="score-row">
         <div class="row-label">1分 (拳擊)</div>
-        <button class="score-btn blue" onclick="sendScore('blue', 1)">
+        <button type="button" class="score-btn blue" data-color="blue" data-points="1">
           +1
           <div class="score-btn-sub">藍方</div>
         </button>
-        <button class="score-btn red" onclick="sendScore('red', 1)">
+        <button type="button" class="score-btn red" data-color="red" data-points="1">
           +1
           <div class="score-btn-sub">紅方</div>
         </button>
@@ -274,11 +373,11 @@
       <!-- Row 2: 2 Points (Body) -->
       <div class="score-row">
         <div class="row-label">2分 (中端)</div>
-        <button class="score-btn blue" onclick="sendScore('blue', 2)">
+        <button type="button" class="score-btn blue" data-color="blue" data-points="2">
           +2
           <div class="score-btn-sub">藍方</div>
         </button>
-        <button class="score-btn red" onclick="sendScore('red', 2)">
+        <button type="button" class="score-btn red" data-color="red" data-points="2">
           +2
           <div class="score-btn-sub">紅方</div>
         </button>
@@ -287,11 +386,11 @@
       <!-- Row 3: 3 Points (Head) -->
       <div class="score-row">
         <div class="row-label">3分 (上端)</div>
-        <button class="score-btn blue" onclick="sendScore('blue', 3)">
+        <button type="button" class="score-btn blue" data-color="blue" data-points="3">
           +3
           <div class="score-btn-sub">藍方</div>
         </button>
-        <button class="score-btn red" onclick="sendScore('red', 3)">
+        <button type="button" class="score-btn red" data-color="red" data-points="3">
           +3
           <div class="score-btn-sub">紅方</div>
         </button>
@@ -300,11 +399,11 @@
       <!-- Row 4: 4 Points (Turning Body) -->
       <div class="score-row">
         <div class="row-label turning">4分 (中端轉身 🌀)</div>
-        <button class="score-btn blue turning" onclick="sendScore('blue', 4)">
+        <button type="button" class="score-btn blue turning" data-color="blue" data-points="4">
           +4
           <div class="score-btn-sub">藍方轉身</div>
         </button>
-        <button class="score-btn red turning" onclick="sendScore('red', 4)">
+        <button type="button" class="score-btn red turning" data-color="red" data-points="4">
           +4
           <div class="score-btn-sub">紅方轉身</div>
         </button>
@@ -313,11 +412,11 @@
       <!-- Row 5: 5 Points (Turning Head) -->
       <div class="score-row">
         <div class="row-label turning">5分 (上端轉身 🌀)</div>
-        <button class="score-btn blue turning" onclick="sendScore('blue', 5)">
+        <button type="button" class="score-btn blue turning" data-color="blue" data-points="5">
           +5
           <div class="score-btn-sub">藍方轉身</div>
         </button>
-        <button class="score-btn red turning" onclick="sendScore('red', 5)">
+        <button type="button" class="score-btn red turning" data-color="red" data-points="5">
           +5
           <div class="score-btn-sub">紅方轉身</div>
         </button>
@@ -329,33 +428,169 @@
 
   <script>
     let currentJudge = null;
+    let hapticEnabled = true;
+    let soundEnabled = true;
+    let audioCtx = null;
+    let lastPressTime = 0;
+
+    // Load preferences
+    const savedHaptic = localStorage.getItem("tkd_haptic");
+    if (savedHaptic !== null) hapticEnabled = (savedHaptic === "true");
+    const savedSound = localStorage.getItem("tkd_sound");
+    if (savedSound !== null) soundEnabled = (savedSound === "true");
+
+    // Initialize Web Audio on user gesture (essential for instant click sound & iOS feedback)
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // High-fidelity mechanical switch click sound (instant tactile audio perception)
+    function playTactileClick(points = 2) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        // Mechanical microswitch pitch drop
+        const startFreq = points >= 4 ? 320 : (points === 3 ? 240 : 170);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.03);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.035);
+      } catch (e) {}
+    }
+
+    // Cross-platform haptic feedback (Android navigator.vibrate + iOS switch trick)
+    function triggerHaptic(points = 2) {
+      if (!hapticEnabled) return;
+
+      // 1. Android & supported browsers: navigator.vibrate
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        try {
+          if (points >= 4) {
+            // Turning kicks: punchy double pulse
+            navigator.vibrate([45, 25, 55]);
+          } else if (points === 3) {
+            // Head kicks: crisp double pulse
+            navigator.vibrate([40, 20, 40]);
+          } else {
+            // 1-2 points: solid crisp micro-click pulse
+            navigator.vibrate(50);
+          }
+        } catch (e) {}
+      }
+
+      // 2. iOS Taptic switch trigger (iOS Safari 17.4+)
+      triggerIOSHaptic();
+    }
+
+    function triggerIOSHaptic() {
+      try {
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.setAttribute("switch", "");
+        input.style.position = "fixed";
+        input.style.top = "-9999px";
+        input.style.opacity = "0";
+        input.style.pointerEvents = "none";
+        document.body.appendChild(input);
+        input.click();
+        setTimeout(() => input.remove(), 100);
+      } catch (e) {}
+    }
+
+    function testFeedback() {
+      initAudio();
+      triggerHaptic(2);
+      playTactileClick(2);
+      
+      const msgEl = document.getElementById("haptic-support-msg");
+      if (!msgEl) return;
+      
+      const hasVibrate = Boolean(typeof navigator !== "undefined" && typeof navigator.vibrate === "function");
+      if (hasVibrate) {
+        msgEl.innerHTML = "✅ <strong style='color:#4ade80;'>已觸發震動！</strong><br><span style='color:#cbd5e1;'>(若無震動感，請確認手機已開啟觸覺回饋，未處於「靜音不震動」或「省電模式」)</span>";
+      } else {
+        msgEl.innerHTML = "ℹ️ <strong style='color:#93c5fd;'>此裝置 (如 iPhone / iOS) 系統限制網頁震動</strong><br><span style='color:#cbd5e1;'>已為您自動啟用<strong>「機械按鍵點擊音效」</strong>，每次按壓提供即時清脆觸覺聲音回饋！</span>";
+      }
+    }
+
+    function toggleHapticSetting() {
+      hapticEnabled = !hapticEnabled;
+      localStorage.setItem("tkd_haptic", hapticEnabled);
+      updateSettingPills();
+      if (hapticEnabled) triggerHaptic(2);
+    }
+
+    function toggleSoundSetting() {
+      initAudio();
+      soundEnabled = !soundEnabled;
+      localStorage.setItem("tkd_sound", soundEnabled);
+      updateSettingPills();
+      if (soundEnabled) playTactileClick(2);
+    }
+
+    function updateSettingPills() {
+      const hapticBtn = document.getElementById("btn-toggle-haptic");
+      const soundBtn = document.getElementById("btn-toggle-sound");
+      if (hapticBtn) {
+        hapticBtn.classList.toggle("active", hapticEnabled);
+        hapticBtn.textContent = hapticEnabled ? "📳 震動: 開" : "📳 震動: 關";
+      }
+      if (soundBtn) {
+        soundBtn.classList.toggle("active", soundEnabled);
+        soundBtn.textContent = soundEnabled ? "🔊 聲音: 開" : "🔊 聲音: 關";
+      }
+    }
 
     // Load saved role if exists
     const savedJudge = localStorage.getItem("tkd_judge_role");
     if (savedJudge) {
-      selectJudge(parseInt(savedJudge));
+      selectJudge(parseInt(savedJudge, 10));
     }
 
     function selectJudge(num) {
+      initAudio();
+      triggerHaptic(1);
+      playTactileClick(1);
       currentJudge = num;
       localStorage.setItem("tkd_judge_role", num);
       document.getElementById("screen-setup").style.display = "none";
       document.getElementById("screen-scoring").style.display = "flex";
       document.getElementById("judge-title").textContent = `裁判 ${num} 席 (J${num})`;
+      updateSettingPills();
     }
 
     function resetRole() {
+      initAudio();
+      triggerHaptic(1);
+      playTactileClick(1);
       localStorage.removeItem("tkd_judge_role");
       document.getElementById("screen-setup").style.display = "flex";
       document.getElementById("screen-scoring").style.display = "none";
     }
 
     function sendScore(color, points) {
-      // Haptic feedback (Vibration)
-      if (navigator.vibrate) {
-        navigator.vibrate(80);
-      }
-
       // Send scoring HTTP request to server (with points query parameter)
       const url = `/api/press?judge=${currentJudge}&color=${color}&points=${points}`;
       fetch(url)
@@ -370,16 +605,63 @@
 
     function showToast(points, color) {
       const toast = document.getElementById("toast");
+      if (!toast) return;
       const colorText = color === "blue" ? "藍方" : "紅方";
-      let pointName = `${points} 分`;
-      if (points === 4) pointName = "4 分 (中端轉身 🌀)";
-      else if (points === 5) pointName = "5 分 (上端轉身 🌀)";
-      toast.textContent = `✓ 已送出 ${colorText} ${pointName}`;
+      let pointName = `+${points} 分`;
+      if (points === 4) pointName = "+4 分 (中端轉身 🌀)";
+      else if (points === 5) pointName = "+5 分 (上端轉身 🌀)";
+      toast.textContent = `✓ J${currentJudge || ''} 給分: ${colorText} ${pointName}`;
       toast.classList.add("show");
       setTimeout(() => {
         toast.classList.remove("show");
-      }, 600);
+      }, 500);
     }
+
+    // Bind 0ms instant touch feedback to all scoring buttons
+    function initButtonEvents() {
+      const buttons = document.querySelectorAll(".score-btn");
+      buttons.forEach(btn => {
+        const color = btn.getAttribute("data-color");
+        const points = parseInt(btn.getAttribute("data-points"), 10);
+
+        const onTouchDown = (e) => {
+          if (e.cancelable) e.preventDefault();
+          const now = Date.now();
+          if (now - lastPressTime < 100) return; // Prevent double trigger
+          lastPressTime = now;
+
+          btn.classList.add("pressed");
+          triggerHaptic(points);
+          playTactileClick(points);
+          sendScore(color, points);
+        };
+
+        const onTouchUp = () => {
+          btn.classList.remove("pressed");
+        };
+
+        // Pointer Events (supported in 100% of modern iOS & Android browsers)
+        if (window.PointerEvent) {
+          btn.addEventListener("pointerdown", onTouchDown);
+          btn.addEventListener("pointerup", onTouchUp);
+          btn.addEventListener("pointercancel", onTouchUp);
+          btn.addEventListener("pointerleave", onTouchUp);
+        } else {
+          // Touch fallback
+          btn.addEventListener("touchstart", onTouchDown, { passive: false });
+          btn.addEventListener("touchend", onTouchUp);
+          btn.addEventListener("touchcancel", onTouchUp);
+          btn.addEventListener("click", onTouchDown);
+        }
+      });
+    }
+
+    // Activate touchstart on body for iOS active state support
+    document.addEventListener("DOMContentLoaded", () => {
+      document.body.addEventListener("touchstart", () => {}, { passive: true });
+      initButtonEvents();
+      updateSettingPills();
+    });
   </script>
 </body>
 </html>
