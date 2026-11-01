@@ -183,10 +183,106 @@ function playTone(freq, type, duration, delay = 0) {
   }, delay);
 }
 
-// Point Chime: Pleasant double tone
-function playPointSound() {
-  playTone(523.25, 'sine', 0.15, 0);   // C5
-  playTone(659.25, 'sine', 0.25, 100); // E5
+// Point Hit Sound: Realistic, punchy Taekwondo scoring "PA!" (啪！) impact sound
+// Completely distinct from referee whistle (2.9kHz trill) and round buzzer (140Hz sawtooth)
+let lastPointSoundTime = 0;
+let pointNoiseBuffer = null;
+
+function getPointNoiseBuffer(ctx) {
+  if (!pointNoiseBuffer || pointNoiseBuffer.sampleRate !== ctx.sampleRate) {
+    const bufferSize = Math.floor(ctx.sampleRate * 0.08); // 80ms buffer
+    pointNoiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = pointNoiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // Exponentially decayed white noise burst for snappy leather slap attack
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.015));
+    }
+  }
+  return pointNoiseBuffer;
+}
+
+function playSinglePaSound(ctx, startTime, intensity = 1.0) {
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.85 * intensity, startTime);
+  master.gain.linearRampToValueAtTime(0.001, startTime + 0.12);
+  master.connect(ctx.destination);
+
+  // Layer 1: Slap / Leather Strike Noise (啪的破空拍擊)
+  try {
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = getPointNoiseBuffer(ctx);
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(2400, startTime);
+    noiseFilter.Q.setValueAtTime(2.2, startTime);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.85 * intensity, startTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.055);
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(master);
+    noiseSource.start(startTime);
+  } catch (e) {}
+
+  // Layer 2: Percussive Body Punch (460Hz -> 80Hz 衝擊力量下潛)
+  try {
+    const bodyOsc = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    bodyOsc.type = 'triangle';
+    bodyOsc.frequency.setValueAtTime(460, startTime);
+    bodyOsc.frequency.exponentialRampToValueAtTime(80, startTime + 0.07);
+
+    bodyGain.gain.setValueAtTime(0.8 * intensity, startTime);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.085);
+
+    bodyOsc.connect(bodyGain);
+    bodyGain.connect(master);
+    bodyOsc.start(startTime);
+    bodyOsc.stop(startTime + 0.09);
+  } catch (e) {}
+
+  // Layer 3: Crisp Electronic Score Transient (清脆亮分泛音 1250Hz -> 380Hz)
+  try {
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.type = 'sine';
+    snapOsc.frequency.setValueAtTime(1250, startTime);
+    snapOsc.frequency.exponentialRampToValueAtTime(380, startTime + 0.035);
+
+    snapGain.gain.setValueAtTime(0.45 * intensity, startTime);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.04);
+
+    snapOsc.connect(snapGain);
+    snapGain.connect(master);
+    snapOsc.start(startTime);
+    snapOsc.stop(startTime + 0.045);
+  } catch (e) {}
+}
+
+function playPointSound(points = 2) {
+  initAudio();
+  if (!audioCtx) return;
+
+  const nowMs = Date.now();
+  if (nowMs - lastPointSoundTime < 200) return; // Debounce rapid multi-triggers
+  lastPointSoundTime = nowMs;
+
+  try {
+    const now = audioCtx.currentTime;
+    if (points >= 3) {
+      // 3~5 points (上端頭部 / 轉身技術): 雙重「啪-啪」乾脆爆發連擊
+      playSinglePaSound(audioCtx, now, 0.9);
+      playSinglePaSound(audioCtx, now + 0.065, 1.05);
+    } else {
+      // 1~2 points (拳擊 / 軀幹中端): 清脆響亮的俐落「啪！」
+      playSinglePaSound(audioCtx, now, 1.0);
+    }
+  } catch (e) {
+    console.warn("Point sound playback failed:", e);
+  }
 }
 
 // Gam-jeom warning: two short square waves
@@ -424,7 +520,7 @@ function initScoreboard() {
       playTone(freq, 'sine', 0.12, 0);
       renderDeviceTestDOM();
     } else if (msg.type === "PLAY_SOUND") {
-      if (msg.sound === "point") playPointSound();
+      if (msg.sound === "point") playPointSound(msg.extra || 2);
       if (msg.sound === "gamjeom") playGamjeomSound();
       if (msg.sound === "buzzer") playBuzzerSound();
       if (msg.sound === "whistle") playWhistleSound();
@@ -525,7 +621,8 @@ function updateScoreboardState(newState) {
     lastAppliedTimestamp = newState.timestamp;
   }
 
-  const oldScore = { blue: state.blueScore, red: state.redScore };
+  const oldScore = { blue: state.blueScore || 0, red: state.redScore || 0 };
+  const oldGamjeom = { blue: state.blueGamjeom || 0, red: state.redGamjeom || 0 };
   const wasTimerRunning = Boolean(state.timerRunning);
   state = newState;
 
@@ -553,12 +650,21 @@ function updateScoreboardState(newState) {
   renderDeviceTestDOM();
   renderIncidentTimerDOM();
   
-  // Pulse animation on score increment
+  // Pulse animation on score increment and play crisp "PA!" impact sound
+  const isBlueGamjeom = (state.redGamjeom || 0) > oldGamjeom.red;
+  const isRedGamjeom = (state.blueGamjeom || 0) > oldGamjeom.blue;
+
   if (state.blueScore > oldScore.blue) {
     pulseScore("blue");
+    if (!isBlueGamjeom) {
+      playPointSound(state.blueScore - oldScore.blue);
+    }
   }
   if (state.redScore > oldScore.red) {
     pulseScore("red");
+    if (!isRedGamjeom) {
+      playPointSound(state.redScore - oldScore.red);
+    }
   }
 }
 
@@ -961,6 +1067,9 @@ function initControl() {
         } else {
           toggleTimer();
         }
+      } else if (e.key.toLowerCase() === "p" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("p")) {
+        e.preventDefault();
+        triggerManualPointSound();
       } else if (e.key.toLowerCase() === "b" && !Object.values(state.keys).map(k => k.toLowerCase()).includes("b")) {
         e.preventDefault();
         triggerManualBuzzer();
@@ -988,6 +1097,9 @@ function initControl() {
   document.getElementById("btn-timer-toggle").onclick = toggleTimer;
   document.getElementById("btn-timer-plus10").onclick = () => adjustTimer(10);
   document.getElementById("btn-timer-minus10").onclick = () => adjustTimer(-10);
+
+  const pointBtn = document.getElementById("btn-play-point");
+  if (pointBtn) pointBtn.onclick = triggerManualPointSound;
 
   const buzzerBtn = document.getElementById("btn-play-buzzer");
   if (buzzerBtn) buzzerBtn.onclick = triggerManualBuzzer;
@@ -1029,13 +1141,19 @@ function broadcastState() {
   }).catch(e => {});
 }
 
-function broadcastSound(soundName) {
-  channel.postMessage({ type: "PLAY_SOUND", sound: soundName });
+function broadcastSound(soundName, extra = null) {
+  channel.postMessage({ type: "PLAY_SOUND", sound: soundName, extra: extra });
   // Play locally too
-  if (soundName === "point") playPointSound();
+  if (soundName === "point") playPointSound(extra || 2);
   if (soundName === "gamjeom") playGamjeomSound();
   if (soundName === "buzzer") playBuzzerSound();
   if (soundName === "whistle") playWhistleSound();
+}
+
+function triggerManualPointSound() {
+  initAudio();
+  broadcastSound("point", 2);
+  logEvent("手動播放得分音效「啪」(Manual Point Sound)");
 }
 
 function triggerManualBuzzer() {
@@ -1073,6 +1191,11 @@ function logEvent(text) {
 function processKeyboardScoring(key) {
   const k = key.toLowerCase();
   
+  // Handle manual point sound shortcut if not mapped to a judge
+  if (k === "p" && !Object.values(state.keys).map(v => v.toLowerCase()).includes("p")) {
+    triggerManualPointSound();
+    return;
+  }
   // Handle manual buzzer shortcut if not mapped to a judge
   if (k === "b" && !Object.values(state.keys).map(v => v.toLowerCase()).includes("b")) {
     triggerManualBuzzer();
@@ -2340,7 +2463,7 @@ function checkConsensus(judgeIndex, color, points) {
     else if (points === 1) pointDesc = "拳擊 +1pt";
     
     logEvent(`Consensus Reached (${color.toUpperCase()} ${pointDesc}) by Judges [${matchingJudges.join(',')}]. Awarded +${points} points!`);
-    broadcastSound("point");
+    broadcastSound("point", points);
     checkAutoEarlyTermination();
   }
 }
@@ -2941,6 +3064,7 @@ function setupAdjustmentButtons() {
             renderControlDOM();
             broadcastState();
             if (stat === "score") {
+              broadcastSound("point", 1);
               checkAutoEarlyTermination();
             }
             return;
@@ -2986,7 +3110,13 @@ function capitalizeFirst(string) {
 window.addEventListener("DOMContentLoaded", route);
 window.addEventListener("hashchange", route);
 window.addEventListener("click", () => {
-  // Some browsers block AudioContext from starting without a user gesture click.
-  // This listener safely initializes on the first click in either window.
+  // Some browsers block AudioContext from starting without a user gesture.
+  // These listeners safely initialize on the first interaction in either window.
   initAudio();
 });
+window.addEventListener("keydown", () => {
+  initAudio();
+});
+window.addEventListener("touchstart", () => {
+  initAudio();
+}, { passive: true });
